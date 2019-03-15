@@ -11,7 +11,7 @@ _**sitestalker**_ consumes a list of URLs or domains and constantly tracks chang
 * Headers - number of HTTP headers returned by a server.
 * Elements - number of elements by ID found on the returned page through XPath notation.
 
-Once changes are detected from the previous run, an alert is sent via email. An HTML page containing screenshots of all active hosts is also created. See sample from this [link](http://infosecscripts.org/sitestalker/test/index.html) (click on the images to view their full size.)
+Once changes are detected from the previous run, an alert is sent via email. An HTML page containing screenshots of all active hosts is also created. See sample from this [link](http://infosecscripts.org/sitestalker/test/index.html) (click on the images to view their full sizes.)
 
 This tool was initially intended to be used for tracking domains that appear to be suspicious. Malicious authors often register domains that closely resembles that of their target organization's when launching a phishing campaign (i.e., [typo-squatting](https://en.wikipedia.org/wiki/Typosquatting)). 
 
@@ -20,7 +20,7 @@ Sometimes, these domains don't have any content yet or in a "parked" status. Thi
 ### Sample Console Output
 **First Run:**
 ```bash
-$ python -W ignore sitestalker.py -i alexa_10.txt -c alexa10_config.yaml
+$ python sitestalker.py -i sample.txt
 
 Browsing http://youtube.com...
 Browsing http://facebook.com...
@@ -55,11 +55,66 @@ Updating HTML gallery..
 	http://yahoo.com (ACTIVE)
 ```
 **Second Run:**
-
+```
+Browsing http://youtube.com...
+Browsing http://facebook.com...
+Browsing http://baidu.com...
+Browsing http://wikipedia.org...
+Browsing http://qq.com...
+Browsing http://taobao.com...
+Browsing http://tmall.com...
+Browsing http://yahoo.com...
+Browsing http://amazon.com...
+Browsing http://sohu.com...
+Stats changed for http://qq.com...
+	content_length - Old: 46944	New: 46882
+	response_length - Old: 241375	New: 241278
+	elements - Old: 0	New: 158
+Taking screenshots for http://qq.com
+Updating HTML gallery..
+	http://baidu.com (ACTIVE)
+	http://sohu.com (ACTIVE)
+	http://youtube.com (ACTIVE)
+	http://amazon.com (ACTIVE)
+	http://facebook.com (ACTIVE)
+	http://qq.com (ACTIVE)
+	http://taobao.com (ACTIVE)
+	http://tmall.com (ACTIVE)
+	http://wikipedia.org (ACTIVE)
+	http://yahoo.com (ACTIVE)
+```
 # Requirements
-### Python Libraries
-### BerkeleyDB
-### Selenium Webdriver
+## BerkeleyDB
+**sitestalker** uses an embedded/nosql database BerkeleyDB from Oracle to store monitored sites' statistics and compare the latest from the previous run.
+The last version of BerkeleyDB that doesn't have a commercial license is 5.3.x. **sitestalker** makes use of BerkeleyDB 5.3.28 which can be downloaded from this [link](https://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index-082944.html).
+
+Instructions for building and installation of BerkeleyDB can be found on this [site](https://docs.oracle.com/cd/E17076_05/html/installation/build_unix.html). Typical steps are summarized below:
+```
+$ cd build_unix
+$ ../dist/configure
+$ make
+$ sudo make install
+...
+...
+Installing DB include files: /usr/local/BerkeleyDB.5.3/include ...
+Installing DB library: /usr/local/BerkeleyDB.5.3/lib ...
+
+```
+## Python Bindings for BerkeleyDB (bsddb3)
+The next step is to install the python library **bsddb3** which provides bindings for the BerkeleyDB database. The latest version comapatible with version 5.3.x can be downloaded from this [page](https://www.jcea.es/programacion/pybsddb.htm) contains all necessary information: 
+
+[bsddb3-5.3.0](https://pypi.org/project/bsddb3/5.3.0/): Testsuite verified with Unix 32 bit Python 2.4-2.7 and 3.1-3.2, and **Berkeley DB 4.3-5.3**. (20120116)
+
+To build and install, use the following command below:
+python setup.py --berkeley-db-incdir=/usr/local/BerkeleyDB.5.3/include --berkeley-db-libdir=/usr/local/BerkeleyDB.5.3/lib install
+
+## Selenium Webdriver
+
+
+## Python Libraries
+
+
+
 
 
 # Configuration
