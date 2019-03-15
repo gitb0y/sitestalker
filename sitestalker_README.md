@@ -119,7 +119,7 @@ $ apt-cache policy chromium-browser
 chromium-browser:
   Installed: 71.0.3578.98-0ubuntu0.16.04.1
 
-$ apt-cache polichy chromium-chromedriver:
+$ apt-cache policy chromium-chromedriver:
 chromium-chromedriver:
   Installed: 71.0.3578.98-0ubuntu0.16.04.1
  
