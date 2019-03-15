@@ -110,7 +110,29 @@ To build and install, use the following command below:
 ```
 python setup.py --berkeley-db-incdir=/usr/local/BerkeleyDB.5.3/include --berkeley-db-libdir=/usr/local/BerkeleyDB.5.3/lib install
 ```
-## Selenium Webdriver
+##  Webdriver and Headless Browser
+To take website screenshots, **sitestalker** has to render the webpage on a "headless" browser (a real browser minus the GUI). These so-called "headless browsers" are in turn controlled by a "webdriver" application. Within a python script, webdrivers are controlled using Selenium library that exposes bindings for the webdriver protocol.
+
+The following packages are used by **sitestalker** and were installed via "apt install" command on Ubuntu 16.04
+```
+$ apt-cache policy chromium-browser
+chromium-browser:
+  Installed: 71.0.3578.98-0ubuntu0.16.04.1
+
+$ apt-cache polichy chromium-chromedriver:
+chromium-chromedriver:
+  Installed: 71.0.3578.98-0ubuntu0.16.04.1
+ 
+ ```
+Another headless browser, **phantomjs** is used to take full page screenshots. This headless browser although no longer being developed, supports taking full page screenshots that other browsers such as Chrome/Chromium don't. Installation was done using Node Package Manager (npm). **npm** was installed along with nodejs via "apt install".
+
+```
+$ apt-install nodejs
+```
+
+
+
+
 
 
 ## Python Libraries
