@@ -129,11 +129,10 @@ Another headless browser, **phantomjs** is used to take full page screenshots. T
 ```
 $ apt-install nodejs
 ```
-
-
-
-
-
+PhantomJS can then be installed using:
+```
+$ npm -g install phantomjs-prebuilt
+```
 
 ## Python Libraries
 
