@@ -124,7 +124,7 @@ chromium-chromedriver:
   Installed: 71.0.3578.98-0ubuntu0.16.04.1
  
  ```
-Another headless browser, **phantomjs** is used to take full page screenshots. This headless browser although no longer being developed, supports taking full page screenshots that other browsers such as Chrome/Chromium don't. Installation was done using Node Package Manager (npm). **npm** was installed along with nodejs via "apt install".
+Another headless browser, **phantomjs** is used to take full page screenshots. This headless browser although no longer being developed, supports taking full page screenshots that other browsers such as Chrome/Chromium don't. The reason is because the webdriver protocol standard only includes taking screenshots of the "viewport" which is just the visible part of the screen when a page is viewed on a browser. Installation was done using Node Package Manager (npm). **npm** was installed along with nodejs via "apt install".
 
 ```
 $ apt-install nodejs
