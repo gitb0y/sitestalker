@@ -156,12 +156,12 @@ sitestalker:
   - reason
   - headers
   - elements
-  min_stats: 4 ## minimum number of any combination of the monitored_statsmonitored_stats
+  min_stats: 4 ## minimum number of any combination of the monitored_stats
   thread_count: 20 ## number of threads to run for get requests when retrieving stats
   email_alerts:
     subject: Updates Seen on Monitored Sites
     sender: sender_email@gmail.com
-    password: sender_email_password@gmail.com ## gmail app password
+    password: sender_email_password ## gmail app password
     recipients:
     - soc@yourcompany.com
     - soc2@yourcompany.com
