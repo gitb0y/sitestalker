@@ -141,10 +141,31 @@ Installation of other required python libraries are done via the standard "pip i
 ```
 $ sudo pip install selenium
 ```
-
-
-
-
 # Configuration
+On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml". This should be edited prior to running the script. 
+```
+sitestalker:
+  db_dir: stalker_db ## directory where database file will reside
+  db_file: stalker.db ## database file name
+  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory
+  html_dir: /var/www/html/sitestalker/ ## html gallery output will be saved here
+  monitored_stats: ## parameters to monitor for each url/domain. the following are supported:
+  - content_length
+  - response_length
+  - status_code
+  - reason
+  - headers
+  - elements
+  min_stats: 4 ## minimum number of any combination of the monitored_statsmonitored_stats
+  thread_count: 20 ## number of threads to run for get requests when retrieving stats
+  email_alerts:
+    subject: Updates Seen on Monitored Sites
+    sender: sender_email@gmail.com
+    password: sender_email_password@gmail.com ## gmail app password
+    recipients:
+    - soc@yourcompany.com
+    - soc2@yourcompany.com
+```
+
 # Help Menu
 # Sample Output
