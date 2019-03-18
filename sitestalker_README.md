@@ -142,13 +142,14 @@ Installation of other required python libraries are done via the standard "pip i
 $ sudo pip install selenium
 ```
 # Configuration
-On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml". This should be edited prior to running the script. 
+On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", afterwhich the program exits. This should be edited prior to running the script. 
 ```
 sitestalker:
   db_dir: stalker_db ## directory where database file will reside
   db_file: stalker.db ## database file name
   screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory
   html_dir: /var/www/html/sitestalker/ ## html gallery output will be saved here
+  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker, # URL where html_dir points to. 
   monitored_stats: ## parameters to monitor for each url/domain. the following are supported:
   - content_length
   - response_length
@@ -165,6 +166,8 @@ sitestalker:
     recipients:
     - soc@yourcompany.com
     - soc2@yourcompany.com
+    smtp_server: smtp.gmail.com
+    smtp_port: 465
 ```
 
 # Help Menu
