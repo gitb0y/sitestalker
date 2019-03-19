@@ -169,6 +169,23 @@ sitestalker:
     smtp_server: smtp.gmail.com
     smtp_port: 465
 ```
+# Input File and Removal
+Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created.
+```
+amazon.com
+verizon.com
+apple.com
+microsoft.com
+oracle.com
+att.com
+#samsung.com
+-yahoo.com
+www.python.com
+http://www.cisco.com
+https://www.google.com
+hXXp://www.badsite[.]com
+```
+
 
 # Help Menu
 ```
