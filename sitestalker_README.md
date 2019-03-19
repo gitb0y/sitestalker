@@ -171,4 +171,23 @@ sitestalker:
 ```
 
 # Help Menu
+```
+usage: sitestalker.py [-h] [-i [INFILE]] [-c [CONFIGFILE]] [-v]
+
+A program that collects and stores statistics of one or more domains or
+websites (e.g., potentially brand-infringing parked domains) and monitors
+changes in these parameters
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i [INFILE], --infile [INFILE]
+                        Input file containing a list of domains or URLs to
+                        monitor.
+  -c [CONFIGFILE], --configfile [CONFIGFILE]
+                        sitestalker.py configuration file in yaml format.
+                        Initial run will create stalker_config.yaml.
+  -v, --verbose         Display verbose output in the screen.
+  
+  EXAMPLE: python sitestalker.py -i monitored_sites.txt -c monitored_sites_config.yaml -v -h
+  ```
 # Sample Output
