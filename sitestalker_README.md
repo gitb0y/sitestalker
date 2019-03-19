@@ -147,9 +147,9 @@ On initial run, **sitestalker.py** will create a configuration file "stalker_con
 sitestalker:
   db_dir: stalker_db ## directory where database file will reside
   db_file: stalker.db ## database file name
-  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory
+  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory. Should be relative to the html_dir, otherwise href to full page screenshots may not work
   html_dir: /var/www/html/sitestalker/ ## html gallery output will be saved here
-  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker, # URL where html_dir points to. 
+  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker, ## URL where html_dir points to. 
   monitored_stats: ## parameters to monitor for each url/domain. the following are supported:
   - content_length
   - response_length
@@ -158,7 +158,7 @@ sitestalker:
   - headers
   - elements
   min_stats: 4 ## minimum number of any combination of the monitored_stats
-  thread_count: 20 ## number of threads to run for get requests when retrieving stats
+  polling_threads: 20 ## number of threads to run for get requests when retrieving stats
   email_alerts:
     subject: Updates Seen on Monitored Sites
     sender: sender_email@gmail.com
