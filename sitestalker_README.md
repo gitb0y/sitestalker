@@ -208,3 +208,7 @@ optional arguments:
   EXAMPLE: python sitestalker.py -i monitored_sites.txt -c monitored_sites_config.yaml -v -h
   ```
 # Sample Output
+
+## Email Notification
+
+## HTML Gallery
