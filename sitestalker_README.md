@@ -83,6 +83,11 @@ Updating HTML gallery..
 	http://wikipedia.org (ACTIVE)
 	http://yahoo.com (ACTIVE)
 ```
+
+### Sample Email Notification
+
+### Sample HTML Gallery  
+
 # Requirements
 ## BerkeleyDB
 **sitestalker** uses an embedded/nosql database BerkeleyDB from Oracle to store monitored sites' statistics and compare the latest from the previous run.
@@ -142,34 +147,59 @@ Installation of other required python libraries are done via the standard "pip i
 $ sudo pip install selenium
 ```
 # Configuration
-On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", afterwhich the program exits. This should be edited prior to running the script. 
+On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", afterwhich the program exits. This should be edited prior to running the script. See inline comments below for brief explanation.
 ```
 sitestalker:
-  db_dir: stalker_db ## directory where database file will reside
+  db_dir: stalker_db  ## where db_file will be saved.
   db_file: stalker.db ## database file name
-  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory. Should be relative to the html_dir, otherwise href to full page screenshots may not work
-  html_dir: /var/www/html/sitestalker/ ## html gallery output will be saved here
-  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker, ## URL where html_dir points to. 
+  email_alerts:
+    password: sender_email_password ## stmp password (e.g., must generate gmail app password when using gmail smtp server)
+    recipients:
+    - soc@yourcompany.com
+    - soc2@yourcompany.com
+    sender: sitestalker.infosecscripts.org@gmail.com. ## change this to your sending email address
+    smtp_port: 465
+    smtp_server: smtp.gmail.com ## This could be any smtp server you can use.
+    subject: '[sitestalker] Updates Seen on Monitored Sites'
+  html_dir: /var/www/html/sitestalker ## html gallery output "index.html" will be saved here.
+  min_stats: 2  ## minimum number of any combination of the monitored_stats required before sitestalker considers the site as updated.
   monitored_stats: ## parameters to monitor for each url/domain. the following are supported:
+  - content_length
+  - response_length
+  - status_code
+  - reason
+  - headers ## count only
+  - elements ## count only
+  polling_threads: 20 ## number of threads to run for GET requests when retrieving stats. Increase as necessary.
+  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory. Should be relative to the html_dir, otherwise href to full page screenshots when clicking images on the html gallery may be broken.
+  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker ## URL where html_dir points to. This link will be included in the email alerts.
+
+group1:
+  db_dir: stalker_db
+  db_file: group1.db
+  email_alerts:
+    password: sender_email_password 
+    recipients:
+    - soc@yourcompany.com
+    - soc2@yourcompany.com
+    sender: sender_email@gmail.com
+    smtp_port: 465
+    smtp_server: smtp.gmail.com
+    subject: '[sitestalker] Updates Seen on Monitored Sites'
+  html_dir: /var/www/html/sitestalker/group1
+  min_stats: 2
+  monitored_stats:
   - content_length
   - response_length
   - status_code
   - reason
   - headers
   - elements
-  min_stats: 4 ## minimum number of any combination of the monitored_stats
-  polling_threads: 20 ## number of threads to run for get requests when retrieving stats
-  email_alerts:
-    subject: Updates Seen on Monitored Sites
-    sender: sender_email@gmail.com
-    password: sender_email_password ## gmail app password
-    recipients:
-    - soc@yourcompany.com
-    - soc2@yourcompany.com
-    smtp_server: smtp.gmail.com
-    smtp_port: 465
+  polling_threads: 20
+  screenshot_dir: /var/www/html/sitestalker/group1/images
+  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker/group1  
 ```
-# Input File and Removal
+# Input File and Database Purging
 Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created.
 ```
 amazon.com
@@ -189,11 +219,12 @@ hXXp://www.badsite[.]com
 
 # Help Menu
 ```
-usage: sitestalker.py [-h] [-i [INFILE]] [-c [CONFIGFILE]] [-v]
+usage: sitestalker.py [-h] [-i [INFILE]] [-c [CONFIGFILE]] [-g [GROUP_NAME]]
+                      [-v]
 
 A program that collects and stores statistics of one or more domains or
 websites (e.g., potentially brand-infringing parked domains) and monitors
-changes in these parameters
+changes in these parameters. Screenshots are taken and email alerts are sent.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -203,12 +234,15 @@ optional arguments:
   -c [CONFIGFILE], --configfile [CONFIGFILE]
                         sitestalker.py configuration file in yaml format.
                         Initial run will create stalker_config.yaml.
+  -g [GROUP_NAME], --group-name [GROUP_NAME]
+                        Group in --configfile where the input file belongs to.
+                        (i.e., which configuration to use for the
+                        --inputfile). Defaults to "sitestalker" group.
   -v, --verbose         Display verbose output in the screen.
-  
-  EXAMPLE: python sitestalker.py -i monitored_sites.txt -c monitored_sites_config.yaml -v -h
+
+EXAMPLE: "python sitestalker.py -i stalker_input.txt -c stalker_config.yaml -g
+group1 -v"
+
   ```
-# Sample Output
 
-## Email Notification
 
-## HTML Gallery
