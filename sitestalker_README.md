@@ -114,11 +114,11 @@ Sending email notification to my_email@mycompany.com
 
 **First Run:**
 
-![notification_email sample (new monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_new.png)
+![notification_email sample (new monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_new.png=673x1086)
 
 **Second Run:**
 
-![notification_email sample (updated monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png)
+![notification_email sample (updated monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png=664x951)
 
 ### Sample HTML Gallery  
 ![screenshot_gallery sample (monitored sites)](https://github.com/gitb0y/phishcracker/blob/master/gallery_sample.png)
