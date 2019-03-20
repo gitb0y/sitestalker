@@ -11,7 +11,7 @@ _**sitestalker**_ consumes a list of URLs or domains and constantly tracks chang
 * Headers - number of HTTP headers returned by a server.
 * Elements - number of elements by ID found on the returned page through XPath notation.
 
-Once changes are detected from the previous run, an alert is sent via email. An HTML page containing screenshots of all active hosts is also created. See sample from this [link](http://infosecscripts.org/sitestalker/test/index.html) (click on the images to view their full sizes.)
+Once changes are detected from the previous run, an alert is sent via email. An HTML page containing screenshots of all active hosts is also created. See sample from this [link](http://infosecscripts.org/sitestalker/) (click on the images to view their full sizes.). 
 
 This tool was initially intended to be used for tracking domains that appear to be suspicious. Malicious authors often register domains that closely resembles that of their target organization's when launching a phishing campaign (i.e., [typo-squatting](https://en.wikipedia.org/wiki/Typosquatting)). 
 
@@ -19,18 +19,21 @@ Sometimes, these domains don't have any content yet or in a "parked" status. Thi
 
 ### Sample Console Output
 **First Run:**
-```bash
+```
 $ python sitestalker.py -i sample.txt
 
+Reading config file: stalker_config.yaml
+
+>Processing group "sitestalker"...
 Browsing http://youtube.com...
-Browsing http://facebook.com...
 Browsing http://baidu.com...
-Browsing http://wikipedia.org...
-Browsing http://qq.com...
-Browsing http://taobao.com...
 Browsing http://tmall.com...
-Browsing http://yahoo.com...
+Browsing http://qq.com...
+Browsing http://wikipedia.org...
+Browsing http://taobao.com...
 Browsing http://amazon.com...
+Browsing http://facebook.com...
+Browsing http://yahoo.com...
 Browsing http://sohu.com...
 Taking screenshots for http://baidu.com
 Taking screenshots for http://sohu.com
@@ -42,7 +45,8 @@ Taking screenshots for http://taobao.com
 Taking screenshots for http://tmall.com
 Taking screenshots for http://wikipedia.org
 Taking screenshots for http://yahoo.com
-Updating HTML gallery..
+Updating HTML gallery in /var/www/html/sitestalker/test/index.html...
+Sending email notification to my_email@mycompany.com
 	http://baidu.com (ACTIVE)
 	http://sohu.com (ACTIVE)
 	http://youtube.com (ACTIVE)
@@ -56,24 +60,46 @@ Updating HTML gallery..
 ```
 **Second Run:**
 ```
+$ python sitestalker.py -i sample.txt 
+Reading config file: stalker_config.yaml
+
+>Processing group "sitestalker"...
 Browsing http://youtube.com...
-Browsing http://facebook.com...
 Browsing http://baidu.com...
-Browsing http://wikipedia.org...
-Browsing http://qq.com...
-Browsing http://taobao.com...
 Browsing http://tmall.com...
-Browsing http://yahoo.com...
+Browsing http://qq.com...
+Browsing http://verizon.com...
+Browsing http://wikipedia.org...
+Browsing http://taobao.com...
 Browsing http://amazon.com...
+Browsing http://facebook.com...
+Browsing http://yahoo.com...
 Browsing http://sohu.com...
+Stats changed for http://facebook.com...
+	response_length - Old: 640527	New: 640091
+Stats changed for http://amazon.com...
+	content_length - Old: 2099	New: 2096
 Stats changed for http://qq.com...
-	content_length - Old: 46944	New: 46882
-	response_length - Old: 241375	New: 241278
-	elements - Old: 0	New: 158
+	content_length - Old: 47087	New: 47188
+	response_length - Old: 240677	New: 240633
+Stats changed for http://yahoo.com...
+	response_length - Old: 519658	New: 515253
+Stats changed for http://youtube.com...
+	response_length - Old: 255452	New: 282730
+	elements - Old: 151	New: 158
+Stats changed for http://sohu.com...
+	response_length - Old: 212011	New: 211567
+Taking screenshots for http://sohu.com
+Taking screenshots for http://youtube.com
+Taking screenshots for http://amazon.com
+Taking screenshots for http://facebook.com
 Taking screenshots for http://qq.com
-Updating HTML gallery..
+Taking screenshots for http://yahoo.com
+Updating HTML gallery in /var/www/html/sitestalker/index.html...
+Sending email notification to my_email@mycompany.com
 	http://baidu.com (ACTIVE)
 	http://sohu.com (ACTIVE)
+	http://verizon.com (ACTIVE)
 	http://youtube.com (ACTIVE)
 	http://amazon.com (ACTIVE)
 	http://facebook.com (ACTIVE)
@@ -85,6 +111,10 @@ Updating HTML gallery..
 ```
 
 ### Sample Email Notification
+**First Run:**
+
+
+**Second Run:**
 
 ### Sample HTML Gallery  
 
@@ -147,32 +177,59 @@ Installation of other required python libraries are done via the standard "pip i
 $ sudo pip install selenium
 ```
 # Configuration
-On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", afterwhich the program exits. This should be edited prior to running the script. See inline comments below for brief explanation.
+On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script. See inline comments below for brief explanation of each item.
 ```
-sitestalker:
-  db_dir: stalker_db  ## where db_file will be saved.
-  db_file: stalker.db ## database file name
+
+## group name. sitestalker can monitor multiple groups of sites or URLs. Each group will have its own settings in the configuration file. Specific group name has to be specified in the command line when processing an input file, otherwise the default "sitestalker" group will be selected. See help menu.
+
+sitestalker: 
+
+  ## where db_file will be saved.
+  db_dir: stalker_db  
+  
+  ## database file name
+  db_file: stalker.db
+  
   email_alerts:
-    password: sender_email_password ## stmp password (e.g., must generate gmail app password when using gmail smtp server)
+    ## stmp password (e.g., must generate gmail app password when using gmail smtp server)
+    password: sender_email_password 
+    
     recipients:
     - soc@yourcompany.com
     - soc2@yourcompany.com
-    sender: sitestalker.infosecscripts.org@gmail.com. ## change this to your sending email address
+    
+    ## change this to your sending email address
+    sender: sender_email@gmail.com
+    
     smtp_port: 465
-    smtp_server: smtp.gmail.com ## This could be any smtp server you can use.
+    ## This could be any smtp server you can use.
+    smtp_server: smtp.gmail.com 
+    
     subject: '[sitestalker] Updates Seen on Monitored Sites'
-  html_dir: /var/www/html/sitestalker ## html gallery output "index.html" will be saved here.
-  min_stats: 2  ## minimum number of any combination of the monitored_stats required before sitestalker considers the site as updated.
-  monitored_stats: ## parameters to monitor for each url/domain. the following are supported:
+    
+  ## html gallery output "index.html" will be saved here.
+  html_dir: /var/www/html/sitestalker 
+  
+  ## minimum number of any combination of the monitored_stats required before sitestalker considers the site as updated.
+  min_stats: 2
+  
+  ## parameters to monitor for each url/domain. the following are supported:
+  monitored_stats: 
   - content_length
   - response_length
   - status_code
   - reason
-  - headers ## count only
-  - elements ## count only
-  polling_threads: 20 ## number of threads to run for GET requests when retrieving stats. Increase as necessary.
-  screenshot_dir: /var/www/html/sitestalker/images ## screenshot images will be saved into this directory. Should be relative to the html_dir, otherwise href to full page screenshots when clicking images on the html gallery may be broken.
-  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker ## URL where html_dir points to. This link will be included in the email alerts.
+  - headers ## saves the header in the database but only counts the difference
+  - elements ## saves the elements-by-id in the database but only counts the difference
+  
+  ## number of threads to run for GET requests when retrieving stats. Increase as necessary or if system can handle.
+  polling_threads: 20 
+  
+  ## screenshot images will be saved into this directory. Should be relative to the html_dir, otherwise href to full page screenshots when clicking images on the html gallery may be broken.
+  screenshot_dir: /var/www/html/sitestalker/images 
+  
+  ## URL where html_dir points to. This link will be included in the email alerts so recipients can see the html image gallery
+  sitestalker_baseurl: http://www.infosecscripts.org/sitestalker 
 
 group1:
   db_dir: stalker_db
