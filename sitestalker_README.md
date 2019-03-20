@@ -111,12 +111,17 @@ Sending email notification to my_email@mycompany.com
 ```
 
 ### Sample Email Notification
+
 **First Run:**
 
+![notification_email sample (new monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_new.png)
 
 **Second Run:**
 
+![notification_email sample (updated monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png)
+
 ### Sample HTML Gallery  
+![screenshot_gallery sample (monitored sites)](https://github.com/gitb0y/phishcracker/blob/master/gallery_sample.png)
 
 # Requirements
 ## BerkeleyDB
@@ -177,11 +182,10 @@ Installation of other required python libraries are done via the standard "pip i
 $ sudo pip install selenium
 ```
 # Configuration
-On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script. See inline comments below for brief explanation of each item.
+On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script again. See inline comments below for brief explanation of each item. 
 ```
 
 ## group name. sitestalker can monitor multiple groups of sites or URLs. Each group will have its own settings in the configuration file. Specific group name has to be specified in the command line when processing an input file, otherwise the default "sitestalker" group will be selected. See help menu.
-
 sitestalker: 
 
   ## where db_file will be saved.
@@ -257,7 +261,7 @@ group1:
   sitestalker_baseurl: http://www.infosecscripts.org/sitestalker/group1  
 ```
 # Input File and Database Purging
-Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created.
+Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created. When the input file is specified using --infile parameter, a group name using --group-name must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
 ```
 amazon.com
 verizon.com
