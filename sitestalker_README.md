@@ -114,15 +114,15 @@ Sending email notification to my_email@mycompany.com
 
 **First Run:**
 
-![](notice_new.png){:height="36px" width="36px"}
+![](notice_new.png)
 
 **Second Run:**
 
-![](notice_updated.png){:height="36px" width="36px"}
+![](notice_updated.png)
 
 ### Sample HTML Gallery
 
-![](gallery_sample.png){:height="36px" width="36px"}
+![](gallery_sample.png)
 
 # Requirements
 ## BerkeleyDB
