@@ -342,7 +342,12 @@ class get_url(threading.Thread):
 	        trs = tree.xpath('//*')
 	        elements_with_id = [tr for tr in trs if tr.attrib.get('id') != None]
 		for element in elements_with_id:
-		    current_data['elements'].append(str(element.attrib.get('id')))
+		    try:
+	                elementid = str(element.attrib.get('id'))
+		    except:
+			continue
+		    #current_data['elements'].append(str(element.attrib.get('id')))
+		    current_data['elements'].append(elementid)
         # SAVE REDIRECT URLS
 		for redirect in res.history:
 		    current_data['redirects'].append(redirect.url)
@@ -680,6 +685,10 @@ if __name__ == '__main__':
 		     purge_url(url, stalkerdb) 
 		     continue    #SKIP COMMENTED LINES
 	          if len(url) > 2000: continue    #SKIP LENGTHY URLS
+		  url = url.replace('[:]', ':')
+		  url = url.replace('[.]', '.')
+		  url = url.replace('[://]', '://')
+		  url = url.replace('"', '')
 	          url = refang(url)
 	          url = url.strip()
 	          if url == '\r': continue    #SKIP DOS 
@@ -702,7 +711,6 @@ if __name__ == '__main__':
                           sys.stdout.flush()
          	          threads = []
 		          thread_count = 0
-
 
         
         for thread in threads:
