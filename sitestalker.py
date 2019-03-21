@@ -61,6 +61,7 @@ def get_screenshot(url, stalkerdb, change_status):
 
 	db_hash = json.loads(stalkerdb[url])
 	if change_status == 'new': #CHECK IF HOST IS NEWLY ADDED. CREATE THE SCREENSHOTS AND ELEMENTS FIELD
+		#if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url
 		db_hash['screenshots'] = {}
 
 	if 'screenshots' in json.loads(stalkerdb[url]):  #FOR EXISTING HOSTS THAT WE NEED TO UPDATE, OVERWRITE EXISTING SCREENSHOT FILE NAMES
@@ -102,10 +103,11 @@ def get_screenshot(url, stalkerdb, change_status):
 	service = Service('/usr/lib/chromium-browser/chromedriver')
 	service.start()
        	driver = webdriver.Remote('http://127.0.0.1:9515', options=chromium_options)
-        #driver.set_page_load_timeout(30)           
+        #driver.set_page_load_timeout(20)           
 	driver.set_window_size(2048,2048)
 	try:
 	    driver.get(url)
+	    time.sleep(5)
 	#wait = WebDriverWait(driver, 4)
 	#wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("html")))
 	#element = wait.until(EC.presence_of_element_located(By.tagName, 'html'))
@@ -162,9 +164,10 @@ def get_screenshot(url, stalkerdb, change_status):
 
        	driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--cookies-file=/tmp/cookies.txt'])
 	driver.set_window_size(2048,1024)
+        #driver.set_page_load_timeout(20)
 	try:
-		time.sleep(3)
         	driver.get(url)
+	    	time.sleep(5)
 	except Exception, e:
 		print "FULL SCREENSHOT GET FAILED FOR URL " + url[0:40]
                 db_hash['host_status'] = str(e)
@@ -223,17 +226,17 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
 		        full_path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
-		    except:
-			print "WE GOT AN EXCEPTION ON " + url[0:40]
+		    except Exception, e:
+			print "WE GOT AN EXCEPTION ON " + url[0:40] + " IN CREATE_HTML"
 			print path, full_path
-			print json.loads(db[url])
+			print e
 		    d = div(style="width:image width px; font-size:80%; text-align:center;")
 		    with d:
             	        a(img(src=path, width="width", height="height", style="padding-bottom:0.5em; max-width:95%;border:6px double #545565"), href=full_path)
-            	        a(url[0:40], href=url)
+            	        a(url[0:40], style="font-size:1vw", href=url)
                         db_hash = json.loads(stalkerdb[url])
 			with td():
-			     with table(border="1", style="border-collapse:collapse", align="center"):
+			     with table(border="1", style="border-collapse:collapse; font-size:.8vw", align="center", ):
 			       for stat in db_hash:
 				 with tr():
 				   if stat == 'redirects':
@@ -266,9 +269,10 @@ def crop_image(screenshot_name): #https://stackoverflow.com/questions/1197172/ho
     screenshot_path = os.path.join(config[group]['screenshot_dir'], screenshot_name)
     crop_path = os.path.join(config[group]['screenshot_dir'], crop_name + "_crop.png")
 
-    result = Popen(' '.join(['convert',  screenshot_path, '-crop', '%sx%s+0+0' % (800,800), crop_path]), shell=True, stdout=PIPE).stdout.read()
+    result = Popen(' '.join(['convert',  screenshot_path, '-gravity', 'North', '-crop', '%sx%s+0+0' % (800,800), '+repage', crop_path]), shell=True, stdout=PIPE).stdout.read()
     if len(result) > 0 and not result.isspace():
         raise Exception(result)
+    #if args.verbose: print ">>> Crop image written to " + crop_path
 
 def thumb_image(screenshot_name): #https://stackoverflow.com/questions/1197172/how-can-i-take-a-screenshot-image-of-a-website-using-python
     thumb_name = screenshot_name[:-4] 
@@ -332,12 +336,12 @@ class get_url(threading.Thread):
        		current_data['reason'] = res.reason 
 		current_data['response_length'] = len(res.content)
 		current_data['effective_url'] = res.url
-		if args.verbose: print ">>> Extracting HTTP headers for " + self.url[0:40]
+		#if args.verbose: print ">>> Extracting HTTP headers for " + self.url[0:40]
         # SAVE HEADERS
 		for k,v in res.headers.iteritems():
 	     	    current_data['headers'][k] = [v]
 	# SAVE ELEMENTS 
-		if args.verbose: print ">>> Extracting XPATH elements for " + self.url[0:40]
+		#if args.verbose: print ">>> Extracting XPATH elements for " + self.url[0:40]
 	        tree = html.fromstring(res.content)
 	        trs = tree.xpath('//*')
 	        elements_with_id = [tr for tr in trs if tr.attrib.get('id') != None]
@@ -420,11 +424,11 @@ def get_stats(url, stalkerdb, threads):
 
 def purge_url(purged_url, stalkerdb):
 
-    url = purged_url[1:] 
-    if len(url) > 2000: return -1#SKIP LENGTHY URLS
+    url = purged_url
+    if len(url) > 2000: return #SKIP LENGTHY URLS
     url = url.strip()
-    if url == '\r': return -1#SKIP DOS 
-    if url == '\n': return -1#SKIP NEW LINES
+    if url == '\r': return #SKIP DOS 
+    if url == '\n': return #SKIP NEW LINES
     url = url.decode("utf-8", "ignore").encode("utf-8", "ignore")
     if url.lower()[0:4] != 'http':
         url = 'http://' + url
@@ -433,27 +437,32 @@ def purge_url(purged_url, stalkerdb):
        return 
     url = url.geturl()
 
-    if url in stalkerdb.keys():
-
-        print "Purging " + url[0:40]
-        db_hash = json.loads(stalkerdb[url])
-        try:
-	    del stalkerdb[url]
-        except Exception, e:
-	    if args.verbose: print ">>> " +  url[0:40] + str(e) + " . Skipping.."
-	    return -1	
-# DELETE SCREENSHOTS
-        for img_size in db_hash['screenshots']:
-	    img_path = os.path.join(config[group]['screenshot_dir'], db_hash['screenshots'][img_size])
-	    if args.verbose: print ">>> Deleting " + img_path + "..." 
+    if url in stalkerdb.keys() and 'screenshots' in json.loads(stalkerdb[url]):
+        if 'screenshots' in json.loads(stalkerdb[url]): 
+            print "Purging " + url[0:40]
+            db_hash = json.loads(stalkerdb[url])
             try:
-	       os.remove(img_path)
-	    except:
-	       if args.verbose: print ">>> Unable to delete " + img_path + "..."
-	       pass
+	        del stalkerdb[url]
+		update_html = True
+            except Exception, e:
+	        if args.verbose: print ">>> " +  url[0:40] + str(e) + " . Skipping.."
+	        return 
+	
+# DELETE SCREENSHOTS
+            for img_size in db_hash['screenshots']:
+	        img_path = os.path.join(config[group]['screenshot_dir'], db_hash['screenshots'][img_size])
+	        if args.verbose: print ">>> Deleting " + img_path + "..." 
+                try:
+	           os.remove(img_path)
+	        except:
+	           if args.verbose: print ">>> Unable to delete " + img_path + "..."
+	           continue
+        else:
+	    if args.verbose: print ">>> Purging " + url[0:40] + " skipped. Duplicate infile entry for " + url[0:40] 
+	    return
     else:
 	if args.verbose: print ">>> Purging " + url[0:40] + " skipped. No longer exists."
-	return -1
+	return 
     return 0
 
 def send_notification(stalkerdb):
@@ -482,7 +491,7 @@ def send_notification(stalkerdb):
                 screenshot_thumb_path = os.path.join(config[group]['screenshot_dir'], screenshot_thumb_name)
 
    	    except:
-	            print "WE GOT AN EXCEPTION ON " + url[0:40]
+	            print "SEND NOTIFICATION EXCEPTION ON " + url[0:40] 
 		    print json.loads(stalkerdb[url])
 	    d = div(style="width:image width px; font-size:80%; text-align:left;")
 	    img_url = config[group]['sitestalker_baseurl'] + "/" + os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
@@ -538,7 +547,7 @@ def send_notification(stalkerdb):
 					td("   " + str(count) + ". " + defang(db_hash['effective_url'])[0:30], colspan="2")
 		        with td(align="center"):
 				a(img(src="cid:" + screenshot_thumb_name), href=img_url)
-	    if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
+	    #if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
  	    fp = open(screenshot_thumb_path, 'rb')	
 	    msgImage = MIMEImage(fp.read())
 	    fp.close()
@@ -561,7 +570,32 @@ def send_notification(stalkerdb):
     server.quit()
     	
 	
-	
+def clean_url(url):	
+
+    to_purge = False
+    if url[0:1] == '#': return [-1]#SKIP COMMENTED LINES
+    if len(url) > 2000: return [-1] #SKIP LENGTHY URLS
+    if url[0:1] == '-': 
+         url = url[1:] 
+	 to_purge = True 
+    url = url.replace('[:]', ':')
+    url = url.replace('[.]', '.')
+    url = url.replace('[://]', '://')
+    url = url.replace('"', '')
+    url = refang(url)
+    url = url.strip()
+    if url == '\r': return [-1] #SKIP CR/LF
+    if url == '\n': return [-1] #SKIP NEWLINES
+    if (re.search("^\s*$", url)): return [-1] #SKIP BLACK LINES
+    url = url.decode("utf-8", "ignore").encode("utf-8", "ignore")
+    if url.lower()[0:4] != 'http':
+        url = 'http://' + url
+    url = urlparse(url)
+    if (re.search("[^a-zA-Z\.]", url.netloc)): return [-1] #SKIP URLS WITH NO DOMAIN NAME
+    url = url.geturl()
+    if to_purge:
+	return [1, url] 
+    return [0, url]
 
 
 if __name__ == '__main__':
@@ -665,6 +699,7 @@ if __name__ == '__main__':
 	stalkerdb = db.DB(dbenv)
 	if args.verbose: print ">>> Opening database file " + db_path
 	stalkerdb.open(db_path, None, db.DB_HASH, db.DB_CREATE | db.DB_THREAD  )
+	
 
 
         thread_count = 0	
@@ -675,37 +710,25 @@ if __name__ == '__main__':
 	      if args.group_name == 'sitestalker':
 	         print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
 	      if args.verbose: print ">>> Processing input file " + args.infile + " for group " + "\"" + group + "\""
-	      url_list = {}
+	      urls = {}
+	      url_count = 0 
+
+#### SANITIZE INPUT - REMOVE DUPLICATES, WEIRED INPUTS, INVALID URLS, BLANK LINES ETC.
               for url in open(args.infile, "r"):
-		   url_list[url] = None	
-	      url_count = len(url_list)
-              for url in url_list:
-	          if url[0:1] == '#': continue    #SKIP COMMENTED LINES
-	          if url[0:1] == '-':
-		     purge_url(url, stalkerdb) 
-		     continue    #SKIP COMMENTED LINES
-	          if len(url) > 2000: continue    #SKIP LENGTHY URLS
-		  url = url.replace('[:]', ':')
-		  url = url.replace('[.]', '.')
-		  url = url.replace('[://]', '://')
-		  url = url.replace('"', '')
-	          url = refang(url)
-	          url = url.strip()
-	          if url == '\r': continue    #SKIP DOS 
-	          if url == '\n': continue    #SKIP DOS 
-	          if (re.search("^\s*$", url)): continue #SKIP BLACK LINES
-	          url = url.decode("utf-8", "ignore").encode("utf-8", "ignore")
-	          if url.lower()[0:4] != 'http':
-	  	      url = 'http://' + url
-	          url = urlparse(url)
-	          if (re.search("[^a-zA-Z\.]", url.netloc)): #SKIP URLS WITH NO DOMAIN NAME
-			 continue
-	          url = url.geturl()
+		  cleanurl = clean_url(url)
+		  if cleanurl[0] == -1: continue
+		  if cleanurl[0] == 1:
+		     purge_url(cleanurl[1], stalkerdb) 
+		     continue
+		  urls[cleanurl[1]] = None
+             
+              for url in urls:
 	          get_stats (url, stalkerdb, threads)      
 	          processed_urls.append(url)
 	          thread_count += 1
-	          url_count -= 1
-	          if thread_count == config[group]['polling_threads'] or thread_count > url_count:
+	          url_count += 1
+	          if thread_count == config[group]['polling_threads'] or url_count == len(urls):
+	             if args.verbose: print ">>> Thread count (new): " + str(thread_count) + " .Joining threads..\n"
                      for thread in threads:
                           thread.join()
                           sys.stdout.flush()
@@ -725,7 +748,7 @@ if __name__ == '__main__':
 	     exit()
 	else:
 	    if len(stalkerdb.keys()) == 0:
-		print "Database " + config[group]['db_file'] + " empty. Nothing to do. Moving on..." 
+		print "Database " + config[group]['db_file'] + " empty. Nothing else to do. Moving on..." 
 		if args.verbose: print ">>> Purging empty database \"" +  db_path + "\"" +  "..."
 		try:
 		    stalkerdb.close()
@@ -736,14 +759,16 @@ if __name__ == '__main__':
 	    url_count = len(stalkerdb.keys()) - len(processed_urls) 
 	    if len(stalkerdb.keys()) > 0:
 		if args.verbose: print "Getting stats for existing urls..."
-	    for url in stalkerdb.keys():
+	    url_db_count  = 0
+	
+            for url in stalkerdb.keys():
 		if url in processed_urls: 
 			continue
 	        get_stats (url, stalkerdb, threads)      
 	        thread_count += 1
-		url_count -= 1
-	        if thread_count == config[group]['polling_threads'] or thread_count > url_count:
-	           if args.verbose: print ">>> Thread count (old): " + str(thread_count) + " .Joining threads.."
+		url_db_count += 1
+	        if thread_count == config[group]['polling_threads'] or url_db_count == len(stalkerdb.keys()):
+	           if args.verbose: print "\n>>> Thread count (old): " + str(thread_count) + " .Joining threads..\n"
                    for thread in threads:
                       thread.join()
                       sys.stdout.flush()
