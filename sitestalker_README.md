@@ -114,14 +114,15 @@ Sending email notification to my_email@mycompany.com
 
 **First Run:**
 
-![notification_email sample (new monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_new.png)
+![](notice_new.png){:height="36px" width="36px"}
 
 **Second Run:**
 
-![notification_email sample (updated monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png)
+![](notice_updated.png){:height="36px" width="36px"}
 
-### Sample HTML Gallery  
-![screenshot_gallery sample (monitored sites)](https://github.com/gitb0y/phishcracker/blob/master/gallery_sample.png)
+### Sample HTML Gallery
+
+![](gallery_sample.png){:height="36px" width="36px"}
 
 # Requirements
 ## BerkeleyDB
