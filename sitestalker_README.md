@@ -114,15 +114,21 @@ Sending email notification to my_email@mycompany.com
 
 **First Run:**
 
-![notification_email sample (new monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_new.png=673x1086)
+<p>
+<img align="right" width="481" height="776" src="https://github.com/gitb0y/phishcracker/raw/master/notice_new.png">
+</p>
 
 **Second Run:**
 
-![notification_email sample (updated monitored sites)](https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png=664x951)
+<p>
+<img align="right" width="474" height="679" src="https://github.com/gitb0y/phishcracker/raw/master/notice_updated.png">
+</p>
 
-### Sample HTML Gallery  
+### Sample HTML Gallery
+
+<p>
 ![screenshot_gallery sample (monitored sites)](https://github.com/gitb0y/phishcracker/blob/master/gallery_sample.png)
-
+</p>
 # Requirements
 ## BerkeleyDB
 **sitestalker** uses an embedded/nosql database BerkeleyDB from Oracle to store monitored sites' statistics and compare the latest from the previous run.
