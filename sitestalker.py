@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -21,11 +23,13 @@ from lxml import html
 import subprocess
 import threading 
 import dominate
+import datetime
 import StringIO
 import argparse
 import requests
 import httplib
 import smtplib
+import getpass
 import psutil
 import urllib
 import signal
@@ -61,15 +65,17 @@ def get_screenshot(url, stalkerdb, change_status):
 
 	db_hash = json.loads(stalkerdb[url])
 	if change_status == 'new': #CHECK IF HOST IS NEWLY ADDED. CREATE THE SCREENSHOTS AND ELEMENTS FIELD
-		#if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url
+		if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
 		db_hash['screenshots'] = {}
 
 	if 'screenshots' in json.loads(stalkerdb[url]):  #FOR EXISTING HOSTS THAT WE NEED TO UPDATE, OVERWRITE EXISTING SCREENSHOT FILE NAMES
+	    if args.verbose: ">>> Retrieving old screenshot entries for " + url
 	    screenshot_full_name = db_hash['screenshots']['full']
 	    screenshot_name = db_hash['screenshots']['normal']
 	    screenshot_crop_name = db_hash['screenshots']['crop']
 	    screenshot_thumb_name = db_hash['screenshots']['thumb']
 	else: #FOR NEW HOST ENTRIES
+		if args.verbose: ">> Creating randomized screenshot filenames for " + url
         	rand_str = str(uuid.uuid4().hex) 
 		screenshot_full_name = rand_str + "_full.png"
 		screenshot_crop_name = rand_str + "_crop.png"
@@ -183,6 +189,7 @@ def get_screenshot(url, stalkerdb, change_status):
         	driver.get_screenshot_as_file(screenshot_full_path) #SOME SITES DENY QUICK SUCCEEDING CONNECTIONS USE VIEW PORT SCREENSHOT INSTEAD
         	db_hash['screenshots']['full'] = screenshot_full_name
 	except Exception, e:
+	        if args.verbose: print "SETTING FULL SCREENSHOT HERE"
         	db_hash['screenshots']['full'] = screenshot_name
 # CLOSE PHANTOMJS BROWSER
 	driver.quit()
@@ -222,6 +229,7 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 	with doc:
 	    with div(_class='grid'):
 	        for url in stalkerdb.keys():
+		    if args.verbose: print ">>> CREATING HTML ENTRY FOR " + url[0:40]
 		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
@@ -355,10 +363,15 @@ class get_url(threading.Thread):
         # SAVE REDIRECT URLS
 		for redirect in res.history:
 		    current_data['redirects'].append(redirect.url)
+	else:
+		if args.verbose: print current_data['host_status'] + " FOR " + self.url[0:40] + " skipping.."
+		current_data['change_status'] = 'error'
+	        self.stalkerdb[self.url] = json.dumps(current_data)
+		return
 
 
 	# COMPARE NEW AND PREVIOUS STATS
-	if self.url in self.stalkerdb:
+	if self.url in self.stalkerdb: 
             stalkerdb_hash = json.loads(stalkerdb[self.url])
 	    changed_stats = compare_stats(self.url, stalkerdb, current_data, previous_data)
 	    if len(changed_stats) >= config[group]['min_stats'] : 
@@ -561,7 +574,11 @@ def send_notification(stalkerdb):
     print "Sending email notification to " + TO_div.join(config[group]['email_alerts']['recipients'])
     server = smtplib.SMTP_SSL(config[group]['email_alerts']['smtp_server'], config[group]['email_alerts']['smtp_port']) 
     #server.set_debuglevel(1)
-    server.login(config[group]['email_alerts']['sender'], config[group]['email_alerts']['password'])
+    if config[group]['email_alerts']['password'] == "sender_email_password" or config[group]['email_alerts']['password'] == "":
+	email_password = getpass.getpass(prompt='Email Password for "' + group + '" group:')
+    else:
+	email_password = config[group]['email_alerts']['password']
+    server.login(config[group]['email_alerts']['sender'], email_password)
     try:
         server.sendmail(config[group]['email_alerts']['sender'], config[group]['email_alerts']['recipients'], msg.as_string())
     except Exception, e:
@@ -616,7 +633,8 @@ if __name__ == '__main__':
 							'status_code', 'reason', 
 							'headers',
 							'elements'
-							], 'min_stats': 2,
+							], 
+					'min_stats': 2,
 					'html_dir': '/var/www/html/sitestalker',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
@@ -640,7 +658,8 @@ if __name__ == '__main__':
 							'status_code', 'reason', 
 							'headers',
 							'elements'
-							], 'min_stats': 2,
+							], 
+					'min_stats': 2,
 					'html_dir': '/var/www/html/sitestalker/group1',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
@@ -707,8 +726,8 @@ if __name__ == '__main__':
 # PROCESS INPUT FILE
         if args.infile:
           if group == args.group_name:
-	      if args.group_name == 'sitestalker':
-	         print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
+	      #if args.group_name == 'sitestalker':
+	      #   print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
 	      if args.verbose: print ">>> Processing input file " + args.infile + " for group " + "\"" + group + "\""
 	      urls = {}
 	      url_count = 0 
@@ -757,8 +776,8 @@ if __name__ == '__main__':
 		os.remove(db_path)
 		continue
 	    url_count = len(stalkerdb.keys()) - len(processed_urls) 
-	    if len(stalkerdb.keys()) > 0:
-		if args.verbose: print "Getting stats for existing urls..."
+#	    if len(stalkerdb.keys()) > 0:
+#		if args.verbose: print "Getting stats for existing urls..."
 	    url_db_count  = 0
 	
             for url in stalkerdb.keys():
@@ -779,6 +798,7 @@ if __name__ == '__main__':
                 sys.stdout.flush()
          	threads = []
 	if update_html:
+		time.sleep(10)
 		for url in stalkerdb.keys():
 		     if (json.loads(stalkerdb[url])['change_status'] == 'updated' or json.loads(stalkerdb[url])['change_status'] == 'new') and json.loads(stalkerdb[url])['host_status'] == 'ACTIVE': 
 		          get_screenshot(url, stalkerdb, json.loads(stalkerdb[url])['change_status'])
@@ -799,4 +819,6 @@ if __name__ == '__main__':
 	stalkerdb.sync()
 	stalkerdb.close()
 	os.kill(driverproc.pid, signal.SIGKILL)
-
+	print "\nDone. " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M") 
+	elapsed_time =  time.time() - startTime
+        print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
