@@ -182,6 +182,11 @@ Installation of other required python libraries are done via the standard "pip i
 ```
 $ sudo pip install selenium
 ```
+
+## Others
+```
+[Image Magick](https://www.imagemagick.org/) - For cropping, resizing, and thumbnail creation of website screenshots.
+```
 # Configuration
 On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script again. See inline comments below for brief explanation of each item. 
 ```
