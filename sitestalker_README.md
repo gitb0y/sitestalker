@@ -184,9 +184,9 @@ $ sudo pip install selenium
 ```
 
 ## Others
-```
+
 [Image Magick](https://www.imagemagick.org/) - For cropping, resizing, and thumbnail creation of website screenshots.
-```
+
 # Configuration
 On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script again. See inline comments below for brief explanation of each item. 
 ```
@@ -282,6 +282,36 @@ http://www.cisco.com
 https://www.google.com
 hXXp://www.badsite[.]com
 ```
+
+# Sample Cron Entry and Logging
+A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from __"env(1)"__ output. **"--verbose"** was also specified to produce more information and all output is written to a log file __"/var/log/sitestalker.log"__ instead of displaying on the screen.
+
+```
+SHELL=/bin/bash
+USER=my_username
+PATH=/home/my_username/bin:/home/my_username/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+PWD=/home/my_username/git/phishcracker
+HOME=/home/my_username
+LOGNAME=my_username
+
+
+*/5 * * * *  cd ~/path/to/sitestalker/dir && /usr/bin/python -W ignore sitestalker.py -c stalker_config.yaml -v >> /var/log/sitestalker.log
+
+```
+
+# Sample Log File Rotation Using "logrotate(8)"
+
+```
+# cat /etc/logrotate.d/sitestalker
+/var/log/sitestalker.log {
+    monthly
+    missingok
+    rotate 10
+    compress
+    create
+}
+```
+
 
 
 # Help Menu
