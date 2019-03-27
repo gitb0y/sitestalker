@@ -54,9 +54,12 @@ parser.add_argument('-v', '--verbose', help='Display verbose output in the scree
 args = parser.parse_args()
 
 startTime = time.time()
+print "\nPolling started: " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d")
 update_html = False	
 previous_data = {}
 #driverproc = subprocess.Popen(["/usr/lib/chromium-browser/chromedriver", "--silent"])
+
+
 
 
 
@@ -231,6 +234,7 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 	        for url in stalkerdb.keys():
 		    if args.verbose: print ">>> CREATING HTML ENTRY FOR " + url[0:40]
 		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
+		    if json.loads(stalkerdb[url])['change_status'] != 'error': continue
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
 		        full_path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
@@ -618,6 +622,14 @@ def clean_url(url):
 if __name__ == '__main__':
     
 
+    lock_file = os.path.join(os.getcwd(), ".stalker.lock")
+    if os.path.exists(lock_file):
+       if args.verbose: print " >>> Another instance of sitestalker is running. Exiting.."
+       exit()
+    else:
+       l = open(lock_file, "w")
+       l.close()
+       if args.verbose: print ">>> Lock file created..."
 # START CRHOMEDRIVER SERVICE ONCE TO SAVE MEMORY RESOURCES
     service = Service('/usr/lib/chromium-browser/chromedriver')
     service.start()
@@ -685,7 +697,7 @@ if __name__ == '__main__':
     config = yaml.load(open(args.configfile))
 
     for group in config:
-	print "\n>Processing group \"" + group + "\"..."
+	print "\nProcessing group \"" + group + "\"..."
 	threads = []
 	ua = UserAgent()
 
@@ -728,7 +740,7 @@ if __name__ == '__main__':
 # PROCESS INPUT FILE
         if args.infile:
           if group == args.group_name:
-	      print "\n>Processing input file " + args.infile + " for group \"" + group + "\"..."
+	      print "Processing input file " + args.infile + " for group \"" + group + "\"..."
 	      #if args.group_name == 'sitestalker':
 	      #   print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
 	      if args.verbose: print ">>> Processing input file " + args.infile + " for group " + "\"" + group + "\""
@@ -818,10 +830,15 @@ if __name__ == '__main__':
 	    #print "\tReason: ", json.loads(stalkerdb[url])['reason']
             #print "\tElements Count: ", len(json.loads(stalkerdb[url])['elements'])
 
-
+	if args.verbose: print ">>> Syncing database..."
 	stalkerdb.sync()
+	if args.verbose: print ">>> Closing database..."
 	stalkerdb.close()
+	if args.verbose: print ">>> Stopping webdriver service..."
+	service.stop()	
+	if args.verbose: print ">>> Removing sitestalker lock file..."
+	os.remove(lock_file)
 	#os.kill(driverproc.pid, signal.SIGKILL)
-	print "\nDone. " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M") 
+	print "\nDone. " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d") 
 	elapsed_time =  time.time() - startTime
         print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
