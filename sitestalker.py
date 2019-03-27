@@ -56,7 +56,7 @@ args = parser.parse_args()
 startTime = time.time()
 update_html = False	
 previous_data = {}
-driverproc = subprocess.Popen(["/usr/lib/chromium-browser/chromedriver", "--silent"])
+#driverproc = subprocess.Popen(["/usr/lib/chromium-browser/chromedriver", "--silent"])
 
 
 
@@ -106,9 +106,9 @@ def get_screenshot(url, stalkerdb, change_status):
 
 
 	chromium_options.binary_location = '/usr/bin/chromium-browser'
-	service = Service('/usr/lib/chromium-browser/chromedriver')
-	service.start()
-       	driver = webdriver.Remote('http://127.0.0.1:9515', options=chromium_options)
+       	driver = webdriver.Remote(service.service_url, options=chromium_options)
+       	#driver = webdriver.Remote('http://127.0.0.1:9515', options=chromium_options)
+       	#driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=chromium_options)
         #driver.set_page_load_timeout(20)           
 	driver.set_window_size(2048,2048)
 	try:
@@ -618,7 +618,9 @@ def clean_url(url):
 if __name__ == '__main__':
     
 
-
+# START CRHOMEDRIVER SERVICE ONCE TO SAVE MEMORY RESOURCES
+    service = Service('/usr/lib/chromium-browser/chromedriver')
+    service.start()
 # PROCESS CONFIG FILE
     if not os.path.exists(args.configfile):
 		configdata = { 'sitestalker':{
@@ -726,6 +728,7 @@ if __name__ == '__main__':
 # PROCESS INPUT FILE
         if args.infile:
           if group == args.group_name:
+	      print "\n>Processing input file " + args.infile + " for group \"" + group + "\"..."
 	      #if args.group_name == 'sitestalker':
 	      #   print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
 	      if args.verbose: print ">>> Processing input file " + args.infile + " for group " + "\"" + group + "\""
@@ -818,7 +821,7 @@ if __name__ == '__main__':
 
 	stalkerdb.sync()
 	stalkerdb.close()
-	os.kill(driverproc.pid, signal.SIGKILL)
+	#os.kill(driverproc.pid, signal.SIGKILL)
 	print "\nDone. " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M") 
 	elapsed_time =  time.time() - startTime
         print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
