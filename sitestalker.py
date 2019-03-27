@@ -234,7 +234,6 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 	        for url in stalkerdb.keys():
 		    if args.verbose: print ">>> CREATING HTML ENTRY FOR " + url[0:40]
 		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
-		    if json.loads(stalkerdb[url])['change_status'] != 'error': continue
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
 		        full_path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
