@@ -284,7 +284,7 @@ hXXp://www.badsite[.]com
 ```
 
 # Sample Cron Entry and Logging
-A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from __"env(1)"__ output. **"--verbose"** was also specified to produce more information and all output is written to a log file __"/var/log/sitestalker.log"__ instead of displaying on the screen.
+A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from __"env(1)"__ output. **"--verbose"** was also specified to produce more information and all output is written to a log file __"/var/log/sitestalker.log"__ instead of displaying on the screen. **stdout** buffering is adjusted using __"stdbuf(1)"__
 
 ```
 SHELL=/bin/bash
@@ -295,7 +295,7 @@ HOME=/home/my_username
 LOGNAME=my_username
 
 
-*/5 * * * *  cd ~/path/to/sitestalker/dir && /usr/bin/python -W ignore sitestalker.py -c stalker_config.yaml -v >> /var/log/sitestalker.log
+*/5 * * * *  cd ~/path/to/sitestalker/dir && stdbuf -oL /usr/bin/python -W ignore sitestalker.py -c stalker_config.yaml -v >> /var/log/sitestalker.log
 
 ```
 
