@@ -54,7 +54,6 @@ parser.add_argument('-v', '--verbose', help='Display verbose output in the scree
 args = parser.parse_args()
 
 startTime = time.time()
-print "\nPolling started: " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d")
 update_html = False	
 previous_data = {}
 #driverproc = subprocess.Popen(["/usr/lib/chromium-browser/chromedriver", "--silent"])
@@ -131,6 +130,11 @@ def get_screenshot(url, stalkerdb, change_status):
         	db_hash['screenshots']['crop'] = 'unknown'
         	db_hash['screenshots']['thumb'] = 'unknown'
         	db_hash['screenshots']['full'] = 'unknown'
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		while envlock != 0:
+			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		#if args.verbose: print ">>> DB safe for write operation.."
 		stalkerdb[url] = json.dumps(db_hash)
 		driver.quit()
 		return
@@ -184,6 +188,11 @@ def get_screenshot(url, stalkerdb, change_status):
                 db_hash['screenshots']['crop'] = 'unknown'
                 db_hash['screenshots']['thumb'] = 'unknown'
                 db_hash['screenshots']['full'] = 'unknown'
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		while envlock != 0:
+			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		#if args.verbose: print ">>> DB safe for write operation.."
                 db[url] = json.dumps(db_hash)
                 driver.quit()
                 return
@@ -197,6 +206,11 @@ def get_screenshot(url, stalkerdb, change_status):
 # CLOSE PHANTOMJS BROWSER
 	driver.quit()
 # SAVE EVERYTHING TO THE DATABASE
+	envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+	while envlock != 0:
+		if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+	#if args.verbose: print ">>> DB safe for write operation.."
 	stalkerdb[url] = json.dumps(db_hash)
 
 
@@ -369,6 +383,11 @@ class get_url(threading.Thread):
 	else:
 		if args.verbose: print current_data['host_status'] + " FOR " + self.url[0:40] + " skipping.."
 		current_data['change_status'] = 'error'
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		while envlock != 0:
+			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		#if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(current_data)
 		return
 
@@ -398,9 +417,19 @@ class get_url(threading.Thread):
 			print "\t" + stat + " - Old: " + str(stalkerdb_hash[stat]) + "\tNew: " + str(current_data[stat])
 			stalkerdb_hash[stat] = current_data[stat]
 
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		while envlock != 0:
+			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
+			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		#if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
             else:		
 		stalkerdb_hash['change_status'] = 'unmodified'
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		while envlock != 0:
+			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
+			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+		#if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
 	else:
 	      update_html = True
@@ -617,17 +646,29 @@ def clean_url(url):
 	return [1, url] 
     return [0, url]
 
-
+def cleanup(stalkerdb, lock_file, service):
+	if args.verbose: print ">>> Syncing database..."
+	stalkerdb.sync()
+	if args.verbose: print ">>> Closing database..."
+	stalkerdb.close()
+	if args.verbose: print ">>> Stopping webdriver service..."
+	service.stop()	
+	if args.verbose: print ">>> Removing sitestalker lock file..."
+	os.remove(lock_file)
+	
 if __name__ == '__main__':
     
 
     lock_file = os.path.join(os.getcwd(), ".stalker.lock")
     if os.path.exists(lock_file):
-       if args.verbose: print " >>> Another instance of sitestalker is running. Exiting.."
+       for start_time in open(lock_file, "r"):
+          if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
        exit()
     else:
-       l = open(lock_file, "w")
-       l.close()
+       if args.verbose: print ">>> Creating lockfile"
+       with open(lock_file, "w") as l:
+	   l.write(datetime.datetime.now().strftime("%H:%M %Y-%m-%d"))
+	   
        if args.verbose: print ">>> Lock file created..."
 # START CRHOMEDRIVER SERVICE ONCE TO SAVE MEMORY RESOURCES
     service = Service('/usr/lib/chromium-browser/chromedriver')
@@ -723,14 +764,19 @@ if __name__ == '__main__':
 		os.makedirs(config[group]['db_dir'])
 	    except:
 		print "Unable to create a database folder at " + config[group]['db_dir'] + ". Check permissions or create it first.."
-        	sys.exit(0)
+        	exit(0)
 # SETUP THE DATABASE ENVIRONMENT, OPEN THREADED DATABASE FOR ASYNCHRONOUS READ/WRITES
 	db_path = os.path.join(os.getcwd(),config[group]['db_dir'],config[group]['db_file'])
 	dbenv = db.DBEnv()
-	dbenv.open(config[group]['db_dir'], db.DB_INIT_LOCK | db.DB_INIT_MPOOL | db.DB_CREATE | db.DB_THREAD, 0)
+	dbenv.open(config[group]['db_dir'], db.DB_INIT_LOCK | db.DB_INIT_MPOOL | db.DB_CREATE | db.DB_THREAD , 0)
 	stalkerdb = db.DB(dbenv)
 	if args.verbose: print ">>> Opening database file " + db_path
-	stalkerdb.open(db_path, None, db.DB_HASH, db.DB_CREATE | db.DB_THREAD  )
+	db_handle = stalkerdb.open(db_path, None, db.DB_HASH, db.DB_CREATE | db.DB_THREAD  )
+	if db_handle == None:
+	    if args.verbose: print ">>> Database open successful..."
+	else:
+	    print "Database open failed. (" + str(db_handle) + ") Exiting.."
+	    exit()
 	
 
 
@@ -778,6 +824,11 @@ if __name__ == '__main__':
 	#print "FREE MEM AFTER REQUESTS IS " + str(free_mem)
 	if not os.path.exists(db_path):
 	     print "No existing database, no input file, nothing to do. Exiting..."
+	     if args.verbose: print ">>> Removing sitestalker lock file..."
+	     try:
+	        os.remove(lock_file)
+	     except:
+		pass
 	     exit()
 	else:
 	    if len(stalkerdb.keys()) == 0:
@@ -788,6 +839,11 @@ if __name__ == '__main__':
 		except:
 		    pass
 		os.remove(db_path)
+	        if args.verbose: print ">>> Removing sitestalker lock file..."
+	        try:
+	            os.remove(lock_file)
+	        except:
+		    pass
 		continue
 	    url_count = len(stalkerdb.keys()) - len(processed_urls) 
 #	    if len(stalkerdb.keys()) > 0:
@@ -820,7 +876,7 @@ if __name__ == '__main__':
 		create_html(stalkerdb)
 		send_notification(stalkerdb)
 	for url in stalkerdb.keys():
-	    print "\t" + url[0:40] + " (" + str(json.loads(stalkerdb[url])['host_status']) + ")"
+	    print "\t" + url[0:40] + " (" + str(json.loads(stalkerdb[url])['host_status']) + ")" + "(" + str(json.loads(stalkerdb[url])['change_status']) + ")"
 	    #print "\tContent-length: " + str(json.loads(stalkerdb[url])['content_length'])
 	    #print "\tResponse Length: " + str(json.loads(stalkerdb[url])['response_length'])
 	    #print "\tHeaders Count: " , len(json.loads(stalkerdb[url])['headers'])
@@ -829,14 +885,7 @@ if __name__ == '__main__':
 	    #print "\tReason: ", json.loads(stalkerdb[url])['reason']
             #print "\tElements Count: ", len(json.loads(stalkerdb[url])['elements'])
 
-	if args.verbose: print ">>> Syncing database..."
-	stalkerdb.sync()
-	if args.verbose: print ">>> Closing database..."
-	stalkerdb.close()
-	if args.verbose: print ">>> Stopping webdriver service..."
-	service.stop()	
-	if args.verbose: print ">>> Removing sitestalker lock file..."
-	os.remove(lock_file)
+	cleanup(stalkerdb, lock_file, service)
 	#os.kill(driverproc.pid, signal.SIGKILL)
 	print "\nDone. " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d") 
 	elapsed_time =  time.time() - startTime
