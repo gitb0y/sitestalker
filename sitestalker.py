@@ -662,7 +662,7 @@ if __name__ == '__main__':
     lock_file = os.path.join(os.getcwd(), ".stalker.lock")
     if os.path.exists(lock_file):
        for start_time in open(lock_file, "r"):
-          if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
+          #if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
        exit()
     else:
        if args.verbose: print ">>> Creating lockfile"
