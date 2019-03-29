@@ -528,8 +528,12 @@ def send_notification(stalkerdb):
 		
 	    
         for url in stalkerdb.keys():
-            if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
-            if json.loads(stalkerdb[url])['change_status'] == 'unmodified': continue
+            if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': 
+		if args.verbose: print url[0:40] + " is not active. Skipping.."
+		continue
+            if json.loads(stalkerdb[url])['change_status'] == 'unmodified': 
+		if args.verbose: print url[0:40] + " is not unmodified. Skipping.."
+		continue
             try:
 		
 	        screenshot_thumb_name = json.loads(stalkerdb[url])['screenshots']['thumb']
@@ -592,7 +596,7 @@ def send_notification(stalkerdb):
 					td("   " + str(count) + ". " + defang(db_hash['effective_url'])[0:30], colspan="2")
 		        with td(align="center"):
 				a(img(src="cid:" + screenshot_thumb_name), href=img_url)
-	    #if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
+	    if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
  	    fp = open(screenshot_thumb_path, 'rb')	
 	    msgImage = MIMEImage(fp.read())
 	    fp.close()
@@ -601,7 +605,12 @@ def send_notification(stalkerdb):
 	
     #print doc.render()
     #msg.attach(MIMEText(config[group]['email_alerts']['message'], "plain"))
-    msg.attach(MIMEText(doc.render(), "html"))
+    if args.verbose: print ">>> Attaching html to email notification.."
+    try:
+	msg.attach(MIMEText(doc.render(), "html"))
+    except:
+	if args.verbose: print ">>> Exception while attaching html to notification.."
+	print doc.render()
     context = ssl.create_default_context()
     print "Sending email notification to " + TO_div.join(config[group]['email_alerts']['recipients'])
     server = smtplib.SMTP_SSL(config[group]['email_alerts']['smtp_server'], config[group]['email_alerts']['smtp_port']) 
@@ -662,7 +671,7 @@ if __name__ == '__main__':
     lock_file = os.path.join(os.getcwd(), ".stalker.lock")
     if os.path.exists(lock_file):
        for start_time in open(lock_file, "r"):
-          #if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
+          if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
        exit()
     else:
        if args.verbose: print ">>> Creating lockfile"
@@ -682,13 +691,14 @@ if __name__ == '__main__':
 					'sitestalker_baseurl': 'http://www.infosecscripts.org/sitestalker', 
 					'polling_threads' : 20, 
 					'monitored_stats': [
-							'content_length', 
+							#'content_length', 
 							'response_length', 
-							'status_code', 'reason', 
+							'status_code', 
+							#'reason', 
 							'headers',
 							'elements'
 							], 
-					'min_stats': 2,
+					'min_stats': 3,
 					'html_dir': '/var/www/html/sitestalker',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
