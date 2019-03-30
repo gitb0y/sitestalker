@@ -16,7 +16,6 @@ from defang import defang, refang
 from selenium import webdriver
 from urlparse import urlparse
 from dominate.tags import *
-from Queue import Queue
 from bsddb3 import db
 from PIL import Image 
 from lxml import html
@@ -30,10 +29,7 @@ import requests
 import httplib
 import smtplib
 import getpass
-import psutil
-import urllib
-import signal
-import glob
+#import psutil
 import uuid
 import yaml
 import json
@@ -66,9 +62,9 @@ previous_data = {}
 def get_screenshot(url, stalkerdb, change_status):
 
 	db_hash = json.loads(stalkerdb[url])
-	if change_status == 'new': #CHECK IF HOST IS NEWLY ADDED. CREATE THE SCREENSHOTS AND ELEMENTS FIELD
-		if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
-		db_hash['screenshots'] = {}
+	#if change_status == 'new': #CHECK IF HOST IS NEWLY ADDED. CREATE THE SCREENSHOTS AND ELEMENTS FIELD
+	#	if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
+	#	db_hash['screenshots'] = {}
 
 	if 'screenshots' in json.loads(stalkerdb[url]):  #FOR EXISTING HOSTS THAT WE NEED TO UPDATE, OVERWRITE EXISTING SCREENSHOT FILE NAMES
 	    if args.verbose: ">>> Retrieving old screenshot entries for " + url
@@ -76,14 +72,15 @@ def get_screenshot(url, stalkerdb, change_status):
 	    screenshot_name = db_hash['screenshots']['normal']
 	    screenshot_crop_name = db_hash['screenshots']['crop']
 	    screenshot_thumb_name = db_hash['screenshots']['thumb']
-	else: #FOR NEW HOST ENTRIES
-		if args.verbose: ">> Creating randomized screenshot filenames for " + url
+	else: #FOR NEW HOST ENTRIES OR UPDATED ENTRIES THAT DON'T HAVE SCREENSHOTS YET
+		if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
+		db_hash['screenshots'] = {}
+		if args.verbose: print ">>> Creating randomized screenshot filenames for " + url[0:40]
         	rand_str = str(uuid.uuid4().hex) 
 		screenshot_full_name = rand_str + "_full.png"
 		screenshot_crop_name = rand_str + "_crop.png"
 		screenshot_thumb_name = rand_str + "_thumb.png"
 		screenshot_name = rand_str + ".png"
-
 	screenshot_full_path = os.path.join(config[group]['screenshot_dir'], screenshot_full_name)
 	screenshot_crop_path = os.path.join(config[group]['screenshot_dir'], screenshot_crop_name)
 	screenshot_thumb_path = os.path.join(config[group]['screenshot_dir'], screenshot_thumb_name)
@@ -133,6 +130,7 @@ def get_screenshot(url, stalkerdb, change_status):
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		#if args.verbose: print ">>> DB safe for write operation.."
 		stalkerdb[url] = json.dumps(db_hash)
@@ -152,7 +150,7 @@ def get_screenshot(url, stalkerdb, change_status):
 	try:
 		db_hash['screenshots']['normal'] = screenshot_name
 	except:
-		print "EXCEPTION ON URL " + url
+		print "EXCEPTION ON URL " + url[0:40] + " WHILE TAKING NORMAL SCREENSHOT."
 		print db_hash
 	db_hash['screenshots']['crop'] = screenshot_crop_name
 	db_hash['screenshots']['thumb'] = screenshot_thumb_name
@@ -191,6 +189,7 @@ def get_screenshot(url, stalkerdb, change_status):
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		#if args.verbose: print ">>> DB safe for write operation.."
                 db[url] = json.dumps(db_hash)
@@ -209,6 +208,7 @@ def get_screenshot(url, stalkerdb, change_status):
 	envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 	while envlock != 0:
 		if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+		time.sleep(1)
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 	#if args.verbose: print ">>> DB safe for write operation.."
 	stalkerdb[url] = json.dumps(db_hash)
@@ -386,6 +386,7 @@ class get_url(threading.Thread):
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
+			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		#if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(current_data)
@@ -400,38 +401,43 @@ class get_url(threading.Thread):
 		update_html = True
 		stalkerdb_hash['change_status'] = 'updated'
 		print "Stats changed for " + self.url[0:40] + "..."
-
+		## SAVE THE CHANGED STATS TO THE EXISTING DB ENTRY
 	        for stat in changed_stats:
 		    if isinstance(stalkerdb_hash[stat], dict) :
 		        print "\t" + stat + " - Old: " + str(len(stalkerdb_hash[stat])) + "\tNew: " + str(len(current_data[stat]))
-			stalkerdb_hash[stat] = {}
+			stalkerdb_hash[stat] = {} # EMPTY  EXISTING DICT BEFORE PUTTING NEW ITEMS
 			for k,v in current_data[stat].iteritems():
 				stalkerdb_hash[stat][k] = [v]
 
 		    elif isinstance(stalkerdb_hash[stat], list):
 		        print "\t" + stat + " - Old: " + str(len(stalkerdb_hash[stat])) + "\tNew: " + str(len(current_data[stat]))
-		    	stalkerdb_hash[stat] = []
+		    	stalkerdb_hash[stat] = [] # EMPTY EXISTING LIST BEFORE PUTTING NEW ITEMS
 			for i in current_data[stat]:
 			    stalkerdb_hash[stat].append(i)
 		    else: 
 			print "\t" + stat + " - Old: " + str(stalkerdb_hash[stat]) + "\tNew: " + str(current_data[stat])
-			stalkerdb_hash[stat] = current_data[stat]
+			stalkerdb_hash[stat] = current_data[stat] # JUST REPLACE THE OLD ITEM WITH THE NEW ONE
 
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
+			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		#if args.verbose: print ">>> DB safe for write operation.."
+		## SAVE THE HOST STATUS SO WE DON'T SKIP INACTIVE HOSTS THAT BECAME ACTIVE WHEN SENDING NOTIFICATION OR CREATING GALLERY
+		stalkerdb_hash['host_status'] = current_data['host_status']
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
             else:		
+		## IF NOTHING HAS CHANGED, SET change_status TO unmodified
 		stalkerdb_hash['change_status'] = 'unmodified'
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
+			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		#if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
 	else:
+	      ## IF IT IS A COMPLETELY NEW ENTRY, SAVE THE current_data, SET change_status TO new
 	      update_html = True
 	      current_data['change_status'] = 'new'
 	      self.stalkerdb[self.url] = json.dumps(current_data)
@@ -596,7 +602,7 @@ def send_notification(stalkerdb):
 					td("   " + str(count) + ". " + defang(db_hash['effective_url'])[0:30], colspan="2")
 		        with td(align="center"):
 				a(img(src="cid:" + screenshot_thumb_name), href=img_url)
-	    if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
+	    #if args.verbose: print ">>> Attaching thumbnail " + screenshot_thumb_path + " for " + url[0:40]
  	    fp = open(screenshot_thumb_path, 'rb')	
 	    msgImage = MIMEImage(fp.read())
 	    fp.close()
@@ -896,7 +902,6 @@ if __name__ == '__main__':
             #print "\tElements Count: ", len(json.loads(stalkerdb[url])['elements'])
 
 	cleanup(stalkerdb, lock_file, service)
-	#os.kill(driverproc.pid, signal.SIGKILL)
 	print "\nDone. " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d") 
 	elapsed_time =  time.time() - startTime
         print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
