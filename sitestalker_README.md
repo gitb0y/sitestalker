@@ -17,6 +17,8 @@ This tool was initially intended to be used for tracking domains that appear to 
 
 Sometimes, these domains don't have any content yet or in a "parked" status. This tool enables you to monitor these sites and get alerted as soon as the contents have changed (e.g., no longer redirects to a domain registrar's default page). A screen capture of the infringing website is often enough to initiate a takedown process.
 
+_**sitestalker**_ is a free and opensource tool. There is no limit to the number of domains or URLs that you can monitor or frequency of checks performed as opposed to other commercial solutions.
+
 ### Sample Console Output
 **First Run:**
 ```
