@@ -538,7 +538,7 @@ def send_notification(stalkerdb):
 		if args.verbose: print url[0:40] + " is not active. Skipping.."
 		continue
             if json.loads(stalkerdb[url])['change_status'] == 'unmodified': 
-		if args.verbose: print url[0:40] + " is not unmodified. Skipping.."
+		if args.verbose: print url[0:40] + " is not modified. Skipping.."
 		continue
             try:
 		
@@ -583,7 +583,7 @@ def send_notification(stalkerdb):
 			       for stat in db_hash:
 				 with tr():
 				   if stat == 'redirects':
-					td("redirect_history:")
+					td("redirects:")
 				   else:
 					td(stat + ":") 
 			           if (isinstance(db_hash[stat], dict)) or (isinstance(db_hash[stat], list)):
@@ -727,9 +727,10 @@ if __name__ == '__main__':
 							'response_length', 
 							'status_code', 'reason', 
 							'headers',
+							'redirects',
 							'elements'
 							], 
-					'min_stats': 2,
+					'min_stats': 4,
 					'html_dir': '/var/www/html/sitestalker/group1',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
