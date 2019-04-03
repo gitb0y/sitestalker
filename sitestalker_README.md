@@ -17,6 +17,8 @@ This tool was initially intended to be used for tracking domains that appear to 
 
 Sometimes, these domains don't have any content yet or in a "parked" status. This tool enables you to monitor these sites and get alerted as soon as the contents have changed (e.g., no longer redirects to a domain registrar's default page). A screen capture of the infringing website is often enough to initiate a takedown process.
 
+_**sitestalker**_ is a free and opensource tool. There is no limit to the number of domains or URLs that you can monitor or frequency of checks performed as opposed to other commercial solutions.
+
 ### Sample Console Output
 **First Run:**
 ```
@@ -221,7 +223,7 @@ sitestalker:
   html_dir: /var/www/html/sitestalker 
   
   ## minimum number of any combination of the monitored_stats required before sitestalker considers the site as updated.
-  min_stats: 3
+  min_stats: 4
   
   ## parameters to monitor for each url/domain. the following are supported/enabled by default except for the commented ones:
   monitored_stats: 
@@ -231,6 +233,7 @@ sitestalker:
   #- reason
   - headers ## saves the header in the database but only counts the difference
   - elements ## saves the elements-by-id in the database but only counts the difference
+  - redirects ## saves the redirect url history but only counts the difference
   
   ## number of threads to run for GET requests when retrieving stats. Increase as necessary or if system can handle.
   polling_threads: 20 
@@ -267,7 +270,9 @@ group1:
   sitestalker_baseurl: http://www.infosecscripts.org/sitestalker/group1  
 ```
 # Input File and Database Purging
-Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created. When the input file is specified using --infile parameter, a group name using --group-name must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
+Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created (if not removed already). When the input file is specified using __--infile__ parameter, a group name using __--group-name__ must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
+
+Domains, urls, http/https, "defanged urls" are all accepted inputs. Some error checking is done to avoid processing invalid entries but to be safe, just enter valid ones.
 ```
 amazon.com
 verizon.com
@@ -284,7 +289,7 @@ hXXp://www.badsite[.]com
 ```
 
 # Sample Cron Entry and Logging
-A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from __"env(1)"__ output. **"--verbose"** was also specified to produce more information and all output is written to a log file __"/var/log/sitestalker.log"__ instead of displaying on the screen. **stdout** buffering is adjusted using __"stdbuf(1)"__
+A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from **"env(1)"** output. __"--verbose"__ was also specified to produce more information and all output is written to a log file **"/var/log/sitestalker.log"** instead of displaying on the screen. **stdout** buffering is also adjusted using **"stdbuf(1)"** so you can do **"tail -f /var/log/sitestalker.log"** and see realtime ouput.
 
 ```
 SHELL=/bin/bash
@@ -295,9 +300,10 @@ HOME=/home/my_username
 LOGNAME=my_username
 
 
-*/5 * * * *  cd ~/path/to/sitestalker/dir && stdbuf -oL /usr/bin/python -W ignore sitestalker.py -c stalker_config.yaml -v >> /var/log/sitestalker.log
+*/5 * * * *  cd ~/path/to/sitestalker/dir && stdbuf -oL /usr/bin/python -W ignore sitestalker.py -c stalker_config.yaml -i infile_sitestalker.txt -g sitestalker -v >> /var/log/sitestalker.log
 
 ```
+
 
 # Sample Log File Rotation Using "logrotate(8)"
 
