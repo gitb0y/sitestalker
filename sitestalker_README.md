@@ -223,7 +223,7 @@ sitestalker:
   html_dir: /var/www/html/sitestalker 
   
   ## minimum number of any combination of the monitored_stats required before sitestalker considers the site as updated.
-  min_stats: 3
+  min_stats: 4
   
   ## parameters to monitor for each url/domain. the following are supported/enabled by default except for the commented ones:
   monitored_stats: 
@@ -233,6 +233,7 @@ sitestalker:
   #- reason
   - headers ## saves the header in the database but only counts the difference
   - elements ## saves the elements-by-id in the database but only counts the difference
+  - redirects ## saves the redirect url history but only counts the difference
   
   ## number of threads to run for GET requests when retrieving stats. Increase as necessary or if system can handle.
   polling_threads: 20 
