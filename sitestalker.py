@@ -817,6 +817,11 @@ if __name__ == '__main__':
 		with io.open(args.configfile, 'w', encoding='utf8') as outfile:
     			yaml.dump(configdata, outfile, default_flow_style=False, allow_unicode=True)
 		print "Configuration file written to " + args.configfile + ". Edit this file before running the script.\nSee https://github.com/gitb0y/phishcracker/blob/master/sitestalker_README.md" 
+	        if args.verbose: print ">>> Removing sitestalker lock file..."
+	        try:
+	           os.remove(lock_file)
+	        except:
+		   pass
 		exit()
 
     print "Reading config file: " + args.configfile
