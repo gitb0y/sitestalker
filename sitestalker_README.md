@@ -232,8 +232,8 @@ sitestalker:
   - status_code
   #- reason
   - headers ## saves the header in the database but only counts the difference
-  - elements ## saves the elements-by-id in the database but only counts the difference
   - redirects ## saves the redirect url history but only counts the difference
+  - elements ## saves the elements-by-id in the database but only counts the difference
   
   ## number of threads to run for GET requests when retrieving stats. Increase as necessary or if system can handle.
   polling_threads: 20 
@@ -264,6 +264,7 @@ group1:
   - status_code
   - reason
   - headers
+  - redirects
   - elements
   polling_threads: 20
   screenshot_dir: /var/www/html/sitestalker/group1/images
@@ -272,17 +273,17 @@ group1:
 # Input File and Database Purging
 Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created (if not removed already). When the input file is specified using __--infile__ parameter, a group name using __--group-name__ must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
 
-Domains, urls, http/https, "defanged urls" are all accepted inputs. Some error checking is done to avoid processing invalid entries but to be safe, just enter valid ones.
+Domains, urls, http/https, "defanged urls" are all accepted inputs. Some error checking is done to avoid processing invalid entries but to be safe, just enter valid ones. Multiple domains or URLs on the same line are handled to some extent. Duplicate or conflicting entries are processed sequentially so having a "purge" entry followed by a valid entry somewhere down the line results in the valid entry being processed repeatedly on every run. Use __--test-infile__ to test your input file.
 ```
 amazon.com
 verizon.com
 apple.com
 microsoft.com
-oracle.com
+oracle.com http://www.infosecscripts.org #www.github.com 
 att.com
-#samsung.com
+#samsung.com -www.linux.com
 -yahoo.com
-www.python.com
+www.python.com 
 http://www.cisco.com
 https://www.google.com
 hXXp://www.badsite[.]com
@@ -342,6 +343,7 @@ optional arguments:
                         (i.e., which configuration to use for the
                         --inputfile). Defaults to "sitestalker" group.
   -v, --verbose         Display verbose output in the screen.
+  -t, --test-infile     Do nothing, just parse the input file.
 
 EXAMPLE: "python sitestalker.py -i stalker_input.txt -c stalker_config.yaml -g
 group1 -v"
