@@ -1,0 +1,10 @@
+-amazon.com
+-verizon.com
+#qantas.com.au
+#apple.com
+#microsoft.com
+#oracle.com
+#att.com
+#samsung.com
+#jetstar.com
+#yahoo.com
