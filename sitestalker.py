@@ -47,14 +47,12 @@ parser.add_argument('-c', '--configfile', nargs='?', const='stalker_config.yaml'
                     help='sitestalker.py configuration file in yaml format. Initial run will create stalker_config.yaml.')
 parser.add_argument('-g', '--group-name', nargs='?', default='sitestalker', const='sitestalker', help='Group in --configfile where the input file belongs to. (i.e., which configuration to use for the --inputfile). Defaults to "sitestalker" group. ')
 parser.add_argument('-v', '--verbose', help='Display verbose output in the screen.', action='store_true'),
+parser.add_argument('-t', '--test-infile', help='Do nothing, just parse the input file.', action='store_true'),
 args = parser.parse_args()
 
 startTime = time.time()
 update_html = False	
 previous_data = {}
-#driverproc = subprocess.Popen(["/usr/lib/chromium-browser/chromedriver", "--silent"])
-
-
 
 
 
@@ -62,9 +60,6 @@ previous_data = {}
 def get_screenshot(url, stalkerdb, change_status):
 
 	db_hash = json.loads(stalkerdb[url])
-	#if change_status == 'new': #CHECK IF HOST IS NEWLY ADDED. CREATE THE SCREENSHOTS AND ELEMENTS FIELD
-	#	if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
-	#	db_hash['screenshots'] = {}
 
 	if 'screenshots' in json.loads(stalkerdb[url]):  #FOR EXISTING HOSTS THAT WE NEED TO UPDATE, OVERWRITE EXISTING SCREENSHOT FILE NAMES
 	    if args.verbose: ">>> Retrieving old screenshot entries for " + url
@@ -73,7 +68,7 @@ def get_screenshot(url, stalkerdb, change_status):
 	    screenshot_crop_name = db_hash['screenshots']['crop']
 	    screenshot_thumb_name = db_hash['screenshots']['thumb']
 	else: #FOR NEW HOST ENTRIES OR UPDATED ENTRIES THAT DON'T HAVE SCREENSHOTS YET
-		if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
+		#if args.verbose: print ">>> CREATING SCREENSHOTS COLLECTIONS FOR " + url[0:40]
 		db_hash['screenshots'] = {}
 		if args.verbose: print ">>> Creating randomized screenshot filenames for " + url[0:40]
         	rand_str = str(uuid.uuid4().hex) 
@@ -132,7 +127,7 @@ def get_screenshot(url, stalkerdb, change_status):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		#if args.verbose: print ">>> DB safe for write operation.."
+#		if args.verbose: print ">>> DB safe for write operation.."
 		stalkerdb[url] = json.dumps(db_hash)
 		driver.quit()
 		return
@@ -191,7 +186,7 @@ def get_screenshot(url, stalkerdb, change_status):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		#if args.verbose: print ">>> DB safe for write operation.."
+#		if args.verbose: print ">>> DB safe for write operation.."
                 db[url] = json.dumps(db_hash)
                 driver.quit()
                 return
@@ -210,7 +205,7 @@ def get_screenshot(url, stalkerdb, change_status):
 		if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 		time.sleep(1)
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-	#if args.verbose: print ">>> DB safe for write operation.."
+#	if args.verbose: print ">>> DB safe for write operation.."
 	stalkerdb[url] = json.dumps(db_hash)
 
 
@@ -388,7 +383,7 @@ class get_url(threading.Thread):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		#if args.verbose: print ">>> DB safe for write operation.."
+#		if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(current_data)
 		return
 
@@ -434,7 +429,7 @@ class get_url(threading.Thread):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		#if args.verbose: print ">>> DB safe for write operation.."
+#		if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
 	else:
 	      ## IF IT IS A COMPLETELY NEW ENTRY, SAVE THE current_data, SET change_status TO new
@@ -476,17 +471,6 @@ def get_stats(url, stalkerdb, threads):
 def purge_url(purged_url, stalkerdb):
 
     url = purged_url
-    if len(url) > 2000: return #SKIP LENGTHY URLS
-    url = url.strip()
-    if url == '\r': return #SKIP DOS 
-    if url == '\n': return #SKIP NEW LINES
-    url = url.decode("utf-8", "ignore").encode("utf-8", "ignore")
-    if url.lower()[0:4] != 'http':
-        url = 'http://' + url
-    url = urlparse(url)
-    if (re.search("[^a-zA-Z\.]", url.netloc)): #SKIP URLS WITH NO DOMAIN NAME
-       return 
-    url = url.geturl()
 
     if url in stalkerdb.keys() and 'screenshots' in json.loads(stalkerdb[url]):
         if 'screenshots' in json.loads(stalkerdb[url]): 
@@ -634,32 +618,116 @@ def send_notification(stalkerdb):
     server.quit()
     	
 	
-def clean_url(url):	
+def extract_urls(line):	
 
-    to_purge = False
-    if url[0:1] == '#': return [-1]#SKIP COMMENTED LINES
-    if len(url) > 2000: return [-1] #SKIP LENGTHY URLS
-    if url[0:1] == '-': 
-         url = url[1:] 
-	 to_purge = True 
-    url = url.replace('[:]', ':')
-    url = url.replace('[.]', '.')
-    url = url.replace('[://]', '://')
-    url = url.replace('"', '')
-    url = refang(url)
-    url = url.strip()
-    if url == '\r': return [-1] #SKIP CR/LF
-    if url == '\n': return [-1] #SKIP NEWLINES
-    if (re.search("^\s*$", url)): return [-1] #SKIP BLACK LINES
-    url = url.decode("utf-8", "ignore").encode("utf-8", "ignore")
-    if url.lower()[0:4] != 'http':
-        url = 'http://' + url
-    url = urlparse(url)
-    if (re.search("[^a-zA-Z\.]", url.netloc)): return [-1] #SKIP URLS WITH NO DOMAIN NAME
-    url = url.geturl()
-    if to_purge:
-	return [1, url] 
-    return [0, url]
+# MISC CLEANUP
+    line = line.replace('[:]', ':')
+    line = line.replace('[.]', '.')
+    line = line.replace('[://]', '://')
+    line = line.replace('"', '')
+    line = refang(line)
+    line = line.strip()
+    line = line.decode("utf-8", "ignore").encode("utf-8", "ignore").lower()
+
+    domains = line.split()
+    newurls = []
+    purgeurls = []
+    skipurls = []
+
+    for domain in domains:
+       domain = domain.strip()
+       if len(domain) > 2000: 
+	  if args.verbose: print ">>> DOMAIN " + domain + " TOO LONG. Skipping.."
+	  continue 
+
+## CONVERT INPUT DOMAINS INTO PROPER URLs
+       if (domain[0:4] != 'http' and domain[0] != '-' and domain[0] != '#'): 
+	     newurl = 'http://' + domain
+	     newurl = urlparse(newurl)
+	     newurls.append(newurl.geturl())
+       elif domain[0] == '-': # 
+	     if domain[1:5] != 'http':
+	         purgeurl = 'http://' + domain
+	         purgeurl = purgeurl.replace('http://-','-http://')
+		 purgeurl = urlparse(purgeurl)
+		 purgeurls.append(purgeurl.geturl())
+	     else:	
+		purgeurl = urlparse(domain)
+	        purgeurls.append(purgeurl.geturl())
+       elif domain[0] == '#':
+	     if domain[1:5] != 'http':
+	        skipurl = 'http://' + domain
+	        skipurl = skipurl.replace('http://#','#http://')
+		skipurl = urlparse(skipurl)
+		skipurls.append(skipurl.geturl())
+	     else:
+		skipurl = urlparse(domain)
+	        skipurls.append(skipurl.geturl())
+       else:
+	   newurl = urlparse(domain)
+	   newurls.append(newurl.geturl())
+	      
+
+## EXTRACT ALL URLs ON EACH LINE OF INPUT
+    ## https://mail.python.org/pipermail/tutor/2002-February/012481.html
+    urls = '(%s)' % '|'.join("""http https""".split())
+    ltrs = r'\w'
+    gunk = r'/#~:.?+=&%@!\-'
+    punc = r'.:?\-'
+    any = "%(ltrs)s%(gunk)s%(punc)s" % { 'ltrs' : ltrs,
+                                         'gunk' : gunk,
+                                         'punc' : punc }
+    url = r"""
+        \b                            # start at word boundary
+        (                             # begin \1 {
+            %(urls)s    :             # need resource and a colon
+            [%(any)s] +?              # followed by one or more
+                                      #  of any valid character, but
+                                      #  be conservative and take only
+                                      #  what you need to....
+        )                             # end   \1 }
+        (?=                           # look-ahead non-consumptive assertion
+                [%(punc)s]*           # either 0 or more punctuation
+                [^%(any)s]            #  followed by a non-url char
+            |                         # or else
+                $                     #  then end of the string
+        )
+        """ % {'urls' : urls,
+               'any' : any,
+               'punc' : punc }
+    url_re = re.compile(url, re.VERBOSE)
+    newmatch = url_re.findall(" ".join(newurls))
+    skipmatch = url_re.findall(" ".join(skipurls))
+    purgematch = url_re.findall(" ".join(purgeurls))
+
+    extractedurls = {}
+    for item in newmatch:
+	url = urlparse(item[0])
+	hostname = url.netloc
+	hostname = hostname.strip()
+	if not re.search(r'[a-zA-Z]+\.', hostname):
+	    continue 
+	url = url.geturl()
+        extractedurls[url] = 0
+
+    for item in skipmatch:
+	url = urlparse(item[0])
+	hostname = url.netloc
+	hostname = hostname.strip()
+	if not re.search(r'[a-zA-Z]+\.', hostname):
+	   continue
+	url = url.geturl()
+        extractedurls[url] = -1
+
+    for item in purgematch:
+	url = urlparse(item[0])
+	hostname = url.netloc
+	hostname = hostname.strip()
+	if not re.search(r'[a-zA-Z]+\.', hostname):
+	   continue
+	url = url.geturl()
+        extractedurls[url] = 1
+    return extractedurls
 
 def cleanup(stalkerdb, lock_file, service):
 	if args.verbose: print ">>> Syncing database..."
@@ -673,21 +741,21 @@ def cleanup(stalkerdb, lock_file, service):
 	
 if __name__ == '__main__':
     
-
-    lock_file = os.path.join(os.getcwd(), ".stalker.lock")
-    if os.path.exists(lock_file):
-       for start_time in open(lock_file, "r"):
-          if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
-       exit()
-    else:
-       if args.verbose: print ">>> Creating lockfile"
-       with open(lock_file, "w") as l:
-	   l.write(datetime.datetime.now().strftime("%H:%M %Y-%m-%d"))
+    if not args.test_infile:
+        lock_file = os.path.join(os.getcwd(), ".stalker.lock") # CHECK ANY RUNNING INSTANCE
+        if os.path.exists(lock_file):
+           for start_time in open(lock_file, "r"):
+              if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
+           exit()
+        else:
+           if args.verbose: print ">>> Creating lockfile"
+           with open(lock_file, "w") as l:
+	       l.write(datetime.datetime.now().strftime("%H:%M %Y-%m-%d"))
 	   
-       if args.verbose: print ">>> Lock file created..."
+           if args.verbose: print ">>> Lock file created..."
 # START CRHOMEDRIVER SERVICE ONCE TO SAVE MEMORY RESOURCES
-    service = Service('/usr/lib/chromium-browser/chromedriver')
-    service.start()
+        service = Service('/usr/lib/chromium-browser/chromedriver')
+        service.start()
 # PROCESS CONFIG FILE
     if not os.path.exists(args.configfile):
 		configdata = { 'sitestalker':{
@@ -702,6 +770,7 @@ if __name__ == '__main__':
 							'status_code', 
 							#'reason', 
 							'headers',
+							'redirects',
 							'elements'
 							], 
 					'min_stats': 3,
@@ -754,46 +823,48 @@ if __name__ == '__main__':
     config = yaml.load(open(args.configfile))
 
     for group in config:
-	print "\nProcessing group \"" + group + "\"..."
+	print "Processing group \"" + group + "\" in " + args.configfile + "..."
 	threads = []
 	ua = UserAgent()
 
 # CREATE NECESSARY FOLDERS
-        if not os.path.exists(config[group]['screenshot_dir']) or not os.path.isdir(config[group]['screenshot_dir']):
-	    if args.verbose: print ">>> Creating screenshots directory " + config[group]['screenshot_dir']
-	    try:
-		os.makedirs(config[group]['screenshot_dir'])
-	    except:
-		print "Unable to create a screenshot folder at " + config[group]['screenshot_dir'] + ". Check permissions or create it first."
-        	sys.exit(0)
+	if not args.test_infile:
+            if not os.path.exists(config[group]['screenshot_dir']) or not os.path.isdir(config[group]['screenshot_dir']):
+	        if args.verbose: print ">>> Creating screenshots directory " + config[group]['screenshot_dir']
+	        try:
+		    os.makedirs(config[group]['screenshot_dir'])
+	        except:
+		    print "Unable to create a screenshot folder at " + config[group]['screenshot_dir'] + ". Check permissions or create it first."
+        	    sys.exit(0)
 
-        if not os.path.exists(config[group]['html_dir']) or not os.path.isdir(config[group]['html_dir']):
-	    if args.verbose: print ">>> Creating html output directory " + config[group]['html_dir']
-	    try:
-		os.makedirs(config[group]['html_dir'])
-	    except:
-		print "Unable to create a html output folder at " + config[group]['html_dir'] + ". Check permissions or create it first.."
-        	sys.exit(0)
+            if not os.path.exists(config[group]['html_dir']) or not os.path.isdir(config[group]['html_dir']):
+	        if args.verbose: print ">>> Creating html output directory " + config[group]['html_dir']
+	        try:
+		    os.makedirs(config[group]['html_dir'])
+	        except:
+		    print "Unable to create a html output folder at " + config[group]['html_dir'] + ". Check permissions or create it first.."
+        	    sys.exit(0)
 
-        if not os.path.exists(config[group]['db_dir']) or not os.path.isdir(config[group]['db_dir']):
-	    if args.verbose: print ">>> Creating database file directory " + config[group]['db_dir']
-	    try:
-		os.makedirs(config[group]['db_dir'])
-	    except:
-		print "Unable to create a database folder at " + config[group]['db_dir'] + ". Check permissions or create it first.."
-        	exit(0)
+            if not os.path.exists(config[group]['db_dir']) or not os.path.isdir(config[group]['db_dir']):
+	        if args.verbose: print ">>> Creating database file directory " + config[group]['db_dir']
+	        try:
+		    os.makedirs(config[group]['db_dir'])
+	        except:
+		    print "Unable to create a database folder at " + config[group]['db_dir'] + ". Check permissions or create it first.."
+        	    exit(0)
+
 # SETUP THE DATABASE ENVIRONMENT, OPEN THREADED DATABASE FOR ASYNCHRONOUS READ/WRITES
-	db_path = os.path.join(os.getcwd(),config[group]['db_dir'],config[group]['db_file'])
-	dbenv = db.DBEnv()
-	dbenv.open(config[group]['db_dir'], db.DB_INIT_LOCK | db.DB_INIT_MPOOL | db.DB_CREATE | db.DB_THREAD , 0)
-	stalkerdb = db.DB(dbenv)
-	if args.verbose: print ">>> Opening database file " + db_path
-	db_handle = stalkerdb.open(db_path, None, db.DB_HASH, db.DB_CREATE | db.DB_THREAD  )
-	if db_handle == None:
-	    if args.verbose: print ">>> Database open successful..."
-	else:
-	    print "Database open failed. (" + str(db_handle) + ") Exiting.."
-	    exit()
+	    db_path = os.path.join(os.getcwd(),config[group]['db_dir'],config[group]['db_file'])
+	    dbenv = db.DBEnv()
+	    dbenv.open(config[group]['db_dir'], db.DB_INIT_LOCK | db.DB_INIT_MPOOL | db.DB_CREATE | db.DB_THREAD , 0)
+	    stalkerdb = db.DB(dbenv)
+	    if args.verbose: print ">>> Opening database file " + db_path
+	    db_handle = stalkerdb.open(db_path, None, db.DB_HASH, db.DB_CREATE | db.DB_THREAD  )
+	    if db_handle == None:
+	        if args.verbose: print ">>> Database open successful..."
+	    else:
+	        print "Database open failed. (" + str(db_handle) + ") Exiting.."
+	        exit()
 	
 
 
@@ -802,107 +873,155 @@ if __name__ == '__main__':
 # PROCESS INPUT FILE
         if args.infile:
           if group == args.group_name:
-	      print "Processing input file " + args.infile + " for group \"" + group + "\"..."
-	      #if args.group_name == 'sitestalker':
-	      #   print "\nWARNING!" + "--infile present but no group name specified (see sitestalker.py --help).\nWill use the default " + "\"" + args.group_name + "\"" + " group for \"" + args.infile + "\" input file."
+	      if args.test_infile:  print "Testing input file " + args.infile + " for group \"" + args.group_name + "\"..."
+	      if not args.test_infile: print "Processing input file " + args.infile + " for group \"" + group + "\"..."
 	      if args.verbose: print ">>> Processing input file " + args.infile + " for group " + "\"" + group + "\""
-	      urls = {}
-	      url_count = 0 
 
-#### SANITIZE INPUT - REMOVE DUPLICATES, WEIRED INPUTS, INVALID URLS, BLANK LINES ETC.
-              for url in open(args.infile, "r"):
-		  cleanurl = clean_url(url)
-		  if cleanurl[0] == -1: continue
-		  if cleanurl[0] == 1:
-		     purge_url(cleanurl[1], stalkerdb) 
-		     continue
-		  urls[cleanurl[1]] = None
-             
-              for url in urls:
-	          get_stats (url, stalkerdb, threads)      
-	          processed_urls.append(url)
-	          thread_count += 1
-	          url_count += 1
-	          if thread_count == config[group]['polling_threads'] or url_count == len(urls):
-	             if args.verbose: print ">>> Thread count (new): " + str(thread_count) + " .Joining threads..\n"
-                     for thread in threads:
-                          thread.join()
-                          sys.stdout.flush()
-         	          threads = []
-		          thread_count = 0
+	      line_count = 0 
+	      input_file = open(args.infile, "r")
+	      input_lines = len(open(args.infile).readlines())
+              url_count = 0
+              purge_count = 0
+              skip_count = 0
+	      process_count = 0
 
-        
-        for thread in threads:
+	      unique_urls = {}
+
+              for line in input_file:
+	          line_count += 1
+		  urls = extract_urls(line) # EXTRACT ALL VALID URLs ON EACH LINE OF INPUT
+		  for url in urls:
+		      if url in unique_urls:
+			    if args.verbose: print "  >>> " + url[0:40] + " Already seen. Duplicate entries?"
+		      else:
+			    unique_urls[url] = None
+		      url_count += 1
+		      if urls[url] == -1: 
+			if args.test_infile: 
+		           if args.verbose: print ">>> Will skip " + url[0:40]
+			   skip_count += 1
+			   continue
+			if args.verbose: print ">>> Skipping " + url[0:40]
+			continue
+		      if urls[url] == 1:
+			  if args.test_infile: 
+				if args.verbose: print ">>> Will purge " + url[0:40]
+			        purge_count += 1
+				continue
+		          if not args.test_infile:
+                              purge_url(url, stalkerdb) 
+		     	      continue
+
+		      if args.test_infile:
+			   if args.verbose: print ">>> Will process " + url[0:40]
+			   process_count += 1
+			   continue
+	              get_stats (url, stalkerdb, threads)      
+	              processed_urls.append(url)
+	              thread_count += 1
+	              if thread_count == config[group]['polling_threads'] or (line_count == input_lines  and url_count == len(urls)):
+	                 if args.verbose: print ">>> Thread count (new): " + str(thread_count) + " .Joining threads..\n"
+                         for thread in threads:
+                              thread.join()
+                              sys.stdout.flush()
+         	              threads = []
+		              thread_count = 0
+			 url_count = 0
+
+              if args.test_infile:
+	           print "\nInput Count: " + str(url_count)
+	           print "To Purge: " + str(purge_count)
+	           print "To Skip: " + str(skip_count)
+	           print "To Process: " + str(process_count) 
+		   print "=====================\n"
+	           exit() 
+	  else:
+		if args.verbose: print ">>> --group-name \"" + args.group_name + "\" doesn\'t match \"" + group + "\" group in \"" + args.configfile + "\" Skipping.."
+        if not args.test_infile:
+            for thread in threads:
                   thread.join()
                   sys.stdout.flush()
                   threads = []
 
 #	free_mem =  dict(psutil.virtual_memory()._asdict())['free'] - FOR FUTURE IMPLEMENTATION THREADED INSTANCE OF WEBDRIVER FOR FASTER SCREENSHOT CAPTURES
 	#print "FREE MEM AFTER REQUESTS IS " + str(free_mem)
-	if not os.path.exists(db_path):
-	     print "No existing database, no input file, nothing to do. Exiting..."
-	     if args.verbose: print ">>> Removing sitestalker lock file..."
-	     try:
-	        os.remove(lock_file)
-	     except:
-		pass
-	     exit()
-	else:
-	    if len(stalkerdb.keys()) == 0:
-		print "Database " + config[group]['db_file'] + " empty. Nothing else to do. Moving on..." 
-		if args.verbose: print ">>> Purging empty database \"" +  db_path + "\"" +  "..."
-		try:
-		    stalkerdb.close()
-		except:
-		    pass
-		os.remove(db_path)
-	        if args.verbose: print ">>> Removing sitestalker lock file..."
-	        try:
+	    if not os.path.exists(db_path):
+	         print "No existing database, no input file, nothing to do. Exiting..."
+	         if args.verbose: print ">>> Removing sitestalker lock file..."
+	         try:
 	            os.remove(lock_file)
-	        except:
+	         except:
 		    pass
-		continue
-	    url_count = len(stalkerdb.keys()) - len(processed_urls) 
-#	    if len(stalkerdb.keys()) > 0:
-#		if args.verbose: print "Getting stats for existing urls..."
-	    url_db_count  = 0
+	         exit()
+	    else:
+	        if len(stalkerdb.keys()) == 0:
+		    print "Database " + config[group]['db_file'] + " empty. Nothing else to do. Moving on..." 
+		    if args.verbose: print ">>> Purging empty database \"" +  db_path + "\"" +  "..."
+		    try:
+		        stalkerdb.close()
+		    except:
+		        pass
+		    os.remove(db_path)
+	            if args.verbose: print ">>> Removing sitestalker lock file..."
+	            try:
+	                os.remove(lock_file)
+	            except:
+		        pass
+		    continue
+	        url_count = len(stalkerdb.keys()) - len(processed_urls) 
+	        url_db_count  = 0
 	
-            for url in stalkerdb.keys():
-		if url in processed_urls: 
-			continue
-	        get_stats (url, stalkerdb, threads)      
-	        thread_count += 1
-		url_db_count += 1
-	        if thread_count == config[group]['polling_threads'] or url_db_count == len(stalkerdb.keys()):
-	           if args.verbose: print "\n>>> Thread count (old): " + str(thread_count) + " .Joining threads..\n"
-                   for thread in threads:
-                      thread.join()
-                      sys.stdout.flush()
-         	      threads = []
-		      thread_count = 0
-            for thread in threads:
-                thread.join()
-                sys.stdout.flush()
-         	threads = []
-	if update_html:
-		time.sleep(10)
-		for url in stalkerdb.keys():
-		     if (json.loads(stalkerdb[url])['change_status'] == 'updated' or json.loads(stalkerdb[url])['change_status'] == 'new') and json.loads(stalkerdb[url])['host_status'] == 'ACTIVE': 
-		          get_screenshot(url, stalkerdb, json.loads(stalkerdb[url])['change_status'])
-		print "Updating HTML gallery in " + os.path.join(config[group]['html_dir'], "index.html...")
-		create_html(stalkerdb)
-		send_notification(stalkerdb)
-	for url in stalkerdb.keys():
-	    print "\t" + url[0:40] + " (" + str(json.loads(stalkerdb[url])['host_status']) + ")" + "(" + str(json.loads(stalkerdb[url])['change_status']) + ")"
-	    #print "\tContent-length: " + str(json.loads(stalkerdb[url])['content_length'])
-	    #print "\tResponse Length: " + str(json.loads(stalkerdb[url])['response_length'])
-	    #print "\tHeaders Count: " , len(json.loads(stalkerdb[url])['headers'])
-	    #print "\tHeaders Count: " , json.loads(stalkerdb[url])['headers']
-	    #print "\tStatus Code: ", str(json.loads(stalkerdb[url])['status_code'])
-	    #print "\tReason: ", json.loads(stalkerdb[url])['reason']
-            #print "\tElements Count: ", len(json.loads(stalkerdb[url])['elements'])
+                for url in stalkerdb.keys():
+		    if url in processed_urls: 
+			    continue
+		    print "Gettign stats for " + url
+	            get_stats (url, stalkerdb, threads)      
+	            thread_count += 1
+		    url_db_count += 1
+	            if thread_count == config[group]['polling_threads'] or url_db_count == len(stalkerdb.keys()):
+	               if args.verbose: print "\n>>> Thread count (old): " + str(thread_count) + " .Joining threads..\n"
+                       for thread in threads:
+                          thread.join()
+                          sys.stdout.flush()
+         	          threads = []
+		          thread_count = 0
+                for thread in threads:
+                    thread.join()
+                    sys.stdout.flush()
+         	    threads = []
+	    if update_html:
+		    time.sleep(10)
+		    for url in stalkerdb.keys():
+		         if (json.loads(stalkerdb[url])['change_status'] == 'updated' or json.loads(stalkerdb[url])['change_status'] == 'new') and json.loads(stalkerdb[url])['host_status'] == 'ACTIVE': 
+		              get_screenshot(url, stalkerdb, json.loads(stalkerdb[url])['change_status'])
+		    print "Updating HTML gallery in " + os.path.join(config[group]['html_dir'], "index.html...")
+		    create_html(stalkerdb)
+		    send_notification(stalkerdb)
 
-	cleanup(stalkerdb, lock_file, service)
-	print "\nDone. " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d") 
-	elapsed_time =  time.time() - startTime
-        print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+
+	    active_count = 0
+	    inactive_count = 0
+	    print "\nActive Hosts:"
+	    for url in stalkerdb.keys():
+		host_status = str(json.loads(stalkerdb[url])['host_status'])
+		change_status = str(json.loads(stalkerdb[url])['change_status'])
+		if host_status == 'ACTIVE':
+		    active_count += 1
+	            print "\t" + url[0:40] 
+   
+	    if args.verbose: print "\nInactive Hosts:"
+	    for url in stalkerdb.keys():
+		host_status = str(json.loads(stalkerdb[url])['host_status'])
+		change_status = str(json.loads(stalkerdb[url])['change_status'])
+		if host_status != 'ACTIVE':
+		    inactive_count += 1
+	            print "\t" + url[0:40]  + " (" + host_status + ")"
+
+	    cleanup(stalkerdb, lock_file, service)
+
+	    print "\nActive Hosts : " + str(active_count)
+	    print "Inactive Hosts: " + str(inactive_count)
+	    print "=====================\n"
+	    print "\nDone. " + datetime.datetime.now().strftime("%H:%M %Y-%m-%d") 
+	    elapsed_time =  time.time() - startTime
+            print "Elapsed time: " + time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
