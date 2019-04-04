@@ -190,7 +190,16 @@ $ sudo pip install selenium
 [Image Magick](https://www.imagemagick.org/) - For cropping, resizing, and thumbnail creation of website screenshots.
 
 # Configuration
-On initial run, **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. This should be edited prior to running the script again. See inline comments below for brief explanation of each item. 
+On initial run (see below), **sitestalker.py** will create a configuration file "stalker_config.yaml", after which the program exits. 
+
+```
+$ python sitestalker.py 
+Configuration file written to stalker_config.yaml. Edit this file before running the script.
+See https://github.com/gitb0y/phishcracker/blob/master/sitestalker_README.md
+```
+
+
+This should be edited prior to running the script again. See inline comments below for brief explanation of each item. 
 ```
 
 ## group name. sitestalker can monitor multiple groups of sites or URLs. Each group will have its own settings in the configuration file. Specific group name has to be specified in the command line when processing an input file, otherwise the default "sitestalker" group will be selected. See help menu.
