@@ -9,6 +9,7 @@ _**sitestalker**_ consumes a list of URLs or domains and constantly tracks chang
 * Status Code - refers to [HTTP Status Codes](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes) returned by the server.
 * Reason - a short textual description of the status code.
 * Headers - number of HTTP headers returned by a server.
+* Redirects - number of HTTP redirects before reaching the actual URL
 * Elements - number of elements by ID found on the returned page through XPath notation.
 
 Once changes are detected from the previous run, an alert is sent via email. An HTML page containing screenshots of all active hosts is also created. See sample from this [link](http://infosecscripts.org/sitestalker/) (click on the images to view their full sizes.). 
