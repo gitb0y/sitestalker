@@ -281,9 +281,9 @@ group1:
   sitestalker_baseurl: http://www.infosecscripts.org/sitestalker/group1  
 ```
 # Input File and Database Purging
-Input file can be a list of URLs or domains. Hash(#) prefix ignores the line and dash (-) removes the URL from the database along with the corresponding screenshots created (if not removed already). When the input file is specified using __--infile__ parameter, a group name using __--group-name__ must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
+Input file can be a list of URLs or domains. Hash(#) prefix ignores the entry and dash (-) removes the URL from the database along with the corresponding screenshots created (if not removed already). When the input file is specified using __--infile__ parameter, a group name using __--group-name__ must also be specified. This means that all insertions and purging of URLs from the input file will happen on the group selected. If not specified, the input file will be processed using the settings from the default group "sitestalker". 
 
-Domains, urls, http/https, "defanged urls" are all accepted inputs. Some error checking is done to avoid processing invalid entries but to be safe, just enter valid ones. Multiple domains or URLs on the same line are handled to some extent. Duplicate or conflicting entries are processed sequentially so having a "purge" entry followed by a valid entry somewhere down the line results in the valid entry being processed repeatedly on every run. Use __--test-infile__ to test your input file.
+Domains, urls, http/https, "defanged urls" are all accepted inputs. Some error checking is done to avoid processing invalid entries but to be safe, just enter valid ones. Multiple domains or URLs on the same line (whitespace-separated) are handled to some extent. Duplicate or conflicting entries are processed sequentially so having a "purge" entry followed by a valid entry somewhere down the line results in the valid entry being processed repeatedly on every run. Use __--test-infile__ __--verbose__ to test your input file.
 ```
 amazon.com
 verizon.com
