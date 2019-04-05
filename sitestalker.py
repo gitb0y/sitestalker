@@ -127,7 +127,6 @@ def get_screenshot(url, stalkerdb, change_status):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-#		if args.verbose: print ">>> DB safe for write operation.."
 		stalkerdb[url] = json.dumps(db_hash)
 		driver.quit()
 		return
@@ -186,7 +185,6 @@ def get_screenshot(url, stalkerdb, change_status):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-#		if args.verbose: print ">>> DB safe for write operation.."
                 db[url] = json.dumps(db_hash)
                 driver.quit()
                 return
@@ -205,7 +203,6 @@ def get_screenshot(url, stalkerdb, change_status):
 		if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 		time.sleep(1)
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-#	if args.verbose: print ">>> DB safe for write operation.."
 	stalkerdb[url] = json.dumps(db_hash)
 
 
@@ -388,7 +385,6 @@ class get_url(threading.Thread):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.."
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-#		if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(current_data)
 		return
 
@@ -418,13 +414,13 @@ class get_url(threading.Thread):
 			print "\t" + stat + " - Old: " + str(stalkerdb_hash[stat]) + "\tNew: " + str(current_data[stat])
 			stalkerdb_hash[stat] = current_data[stat] # JUST REPLACE THE OLD ITEM WITH THE NEW ONE
 
+		## SAVE THE HOST STATUS SO WE DON'T SKIP INACTIVE HOSTS THAT BECAME ACTIVE WHEN SENDING NOTIFICATION OR CREATING GALLERY
+		stalkerdb_hash['host_status'] = current_data['host_status']
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-		## SAVE THE HOST STATUS SO WE DON'T SKIP INACTIVE HOSTS THAT BECAME ACTIVE WHEN SENDING NOTIFICATION OR CREATING GALLERY
-		stalkerdb_hash['host_status'] = current_data['host_status']
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
             else:		
 		## IF NOTHING HAS CHANGED, SET change_status TO unmodified
@@ -434,12 +430,16 @@ class get_url(threading.Thread):
 			if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
 			time.sleep(1)
 			envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
-#		if args.verbose: print ">>> DB safe for write operation.."
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
 	else:
 	      ## IF IT IS A COMPLETELY NEW ENTRY, SAVE THE current_data, SET change_status TO new
 	      update_html = True
 	      current_data['change_status'] = 'new'
+	      envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
+	      while envlock != 0:
+		if args.verbose: print ">>> Lock detected when trying to update " + url[0:40] + ". retrying.." 
+		time.sleep(1)
+		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 	      self.stalkerdb[self.url] = json.dumps(current_data)
 
 def compare_stats(url, stalkerdb, current_data, previous_data):
@@ -750,7 +750,7 @@ if __name__ == '__main__':
         lock_file = os.path.join(os.getcwd(), ".stalker.lock") # CHECK ANY RUNNING INSTANCE
         if os.path.exists(lock_file):
            for start_time in open(lock_file, "r"):
-              if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Exiting.."
+              if args.verbose: print " >>> Another instance of sitestalker is running since " + start_time + ". Try removing \".stalker.lock\" file."
            exit()
         else:
            if args.verbose: print ">>> Creating lockfile"
@@ -970,10 +970,10 @@ if __name__ == '__main__':
 		    if args.verbose: print ">>> Purging empty database and html gallery..."
 		    try:
 		        stalkerdb.close()
+		        os.remove(db_path)
+		        os.remove(html_path)
 		    except:
 		        pass
-		    os.remove(db_path)
-		    os.remove(html_path)
 	            if args.verbose: print ">>> Removing sitestalker lock file..."
 	            try:
 	                os.remove(lock_file)
