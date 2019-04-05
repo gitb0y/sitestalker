@@ -242,7 +242,12 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 	    with div(_class='grid'):
 	        for url in stalkerdb.keys():
 		    if args.verbose: print ">>> CREATING HTML ENTRY FOR " + url[0:40]
-		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
+		    print "TESTING URL " + url + " IF ACTIVE"
+		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': 
+			print "URL " + url + " NOT ACTIVE, SKIPPING"
+			continue
+		    else:
+			print "URL " + url + " ACTIVE, MAKING HTML"
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
 		        full_path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
@@ -471,6 +476,7 @@ def get_stats(url, stalkerdb, threads):
 def purge_url(purged_url, stalkerdb):
 
     url = purged_url
+    global update_html
 
     if url in stalkerdb.keys() and 'screenshots' in json.loads(stalkerdb[url]):
         if 'screenshots' in json.loads(stalkerdb[url]): 
@@ -482,7 +488,6 @@ def purge_url(purged_url, stalkerdb):
             except Exception, e:
 	        if args.verbose: print ">>> " +  url[0:40] + str(e) + " . Skipping.."
 	        return 
-	
 # DELETE SCREENSHOTS
             for img_size in db_hash['screenshots']:
 	        img_path = os.path.join(config[group]['screenshot_dir'], db_hash['screenshots'][img_size])
@@ -860,6 +865,7 @@ if __name__ == '__main__':
 
 # SETUP THE DATABASE ENVIRONMENT, OPEN THREADED DATABASE FOR ASYNCHRONOUS READ/WRITES
 	    db_path = os.path.join(os.getcwd(),config[group]['db_dir'],config[group]['db_file'])
+	    html_path = os.path.join(config[group]['html_dir'],'index.html')
 	    dbenv = db.DBEnv()
 	    dbenv.open(config[group]['db_dir'], db.DB_INIT_LOCK | db.DB_INIT_MPOOL | db.DB_CREATE | db.DB_THREAD , 0)
 	    stalkerdb = db.DB(dbenv)
@@ -961,12 +967,13 @@ if __name__ == '__main__':
 	    else:
 	        if len(stalkerdb.keys()) == 0:
 		    print "Database " + config[group]['db_file'] + " empty. Nothing else to do. Moving on..." 
-		    if args.verbose: print ">>> Purging empty database \"" +  db_path + "\"" +  "..."
+		    if args.verbose: print ">>> Purging empty database and html gallery..."
 		    try:
 		        stalkerdb.close()
 		    except:
 		        pass
 		    os.remove(db_path)
+		    os.remove(html_path)
 	            if args.verbose: print ">>> Removing sitestalker lock file..."
 	            try:
 	                os.remove(lock_file)
