@@ -299,6 +299,40 @@ https://www.google.com
 hXXp://www.badsite[.]com
 ```
 
+## Testing Input File
+
+Given the test input above:
+
+```
+$ python sitestalker.py -tv -i infile_test.txt
+Reading config file: stalker_config.yaml
+Processing group "sitestalker" in stalker_config.yaml...
+Testing input file infile_test.txt for group "sitestalker"...
+>>> Processing input file infile_test.txt for group "sitestalker"
+>>> Will process http://amazon.com
+>>> Will process http://verizon.com
+>>> Will process http://apple.com
+>>> Will process http://microsoft.com
+>>> Will skip http://www.github.com
+>>> Will process http://www.infosecscripts.org
+>>> Will process http://oracle.com
+>>> Will process http://att.com
+>>> Will purge http://www.linux.com
+>>> Will skip http://samsung.com
+>>> Will purge http://yahoo.com
+>>> Will process http://www.python.com
+>>> Will process http://www.cisco.com
+>>> Will process https://www.google.com
+>>> Will process http://www.badsite.com
+
+Input Count: 15
+To Purge: 2
+To Skip: 2
+To Process: 11
+=====================
+
+```
+
 # Sample Cron Entry and Logging
 A "lock file" is created on every run to prevent overlapping executions (e.g., when running as a cron job) with short intervals. See below for a sample cron job entry. Environment variables were taken from **"env(1)"** output. __"--verbose"__ was also specified to produce more information and all output is written to a log file **"/var/log/sitestalker.log"** instead of displaying on the screen. **stdout** buffering is also adjusted using **"stdbuf(1)"** so you can do **"tail -f /var/log/sitestalker.log"** and see realtime ouput.
 
@@ -351,7 +385,7 @@ optional arguments:
   -g [GROUP_NAME], --group-name [GROUP_NAME]
                         Group in --configfile where the input file belongs to.
                         (i.e., which configuration to use for the
-                        --inputfile). Defaults to "sitestalker" group.
+                        --infile). Defaults to "sitestalker" group.
   -v, --verbose         Display verbose output in the screen.
   -t, --test-infile     Do nothing, just parse the input file.
 
@@ -359,6 +393,15 @@ EXAMPLE: "python sitestalker.py -i stalker_input.txt -c stalker_config.yaml -g
 group1 -v"
 
   ```
+  
+# Troubleshooting Tips
+* Versioning may be implemented in the future but in the meantime, always _**git pull**_ the latest commits before running the script.
+* Some errors are caused by a corrupted database, try starting with a clean state. (i.e., delete the database file, screenshots, verify input file entries, and remove the lock file **(".stalker.lock")** if it still exists.
+* Try updating your OS and packages. _**sitestalker**_ was successfully tested on Ubuntu 16.04/18.x and had problems on 14.x due to outdated nodeJS packages.
+* The change in parameters or statistics being track varies from site to site. In some sites, certain parameters constantly change such as redirects, response length, elements, status code etc. Try playing with different combinations to minimize false positives. Site-specific _**monitored_stats**_ might be implemented in the future.
+* Other sites fluctuate (for some reason) and gives you connection error after several successful ones. _**sitestalker**_ only saves the previous run's statistics. This may change in future releases to detect fluctuating sites.
+* When all else fails, submit the _**sitestalker's**_ output with _**--verbose**_ enabled to issue tracking. Input file may also be submitted if deemed necessary.
+
 
 # Future Plans
 * Threaded webdriver - Screenshot captures are done sequentially. Selenium Webdriver isn't thread safe. The only way to use it multi-thread is by instantiating a new webdriver for every thread which could be costly, memory-wise. Opening multiple headless browsers at the same time also hogs the memory so this was not implemented. 
