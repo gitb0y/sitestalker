@@ -1,0 +1,12 @@
+amazon.com
+verizon.com
+apple.com
+microsoft.com
+oracle.com http://www.infosecscripts.org #www.github.com
+att.com
+#samsung.com -www.linux.com
+-yahoo.com
+www.python.com
+http://www.cisco.com
+https://www.google.com
+hXXp://www.badsite[.]com
