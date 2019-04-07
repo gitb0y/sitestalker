@@ -403,7 +403,9 @@ group1 -v"
 * When all else fails, submit the _**sitestalker's**_ output with _**--verbose**_ enabled to issue tracking. Input file may also be submitted if deemed necessary.
 
 
-# Future Plans
+# TODO
 * Threaded webdriver - Screenshot captures are done sequentially. Selenium Webdriver isn't thread safe. The only way to use it multi-thread is by instantiating a new webdriver for every thread which could be costly, memory-wise. Opening multiple headless browsers at the same time also hogs the memory so this was not implemented. 
-* Other enrichments - Additional parameters can be tracked. Enrichment from certstream feeds, whois data, or domain name mangling tools (e.g dnstwist/urlcrazy) for example can be used to automatically populate monitored sites list.
 * Migrate to Python 3.x - version 2.7.x of Python is nearing its end-of-life (2020). All projects in this repo will surely be migrated eventually including sitestalker.
+* Store last _n_ poll statistics. _**sitestalker**_ currently only stores previous poll statistics. Storing multiple poll statistics may be useful for reporting, detecting fluctuations, or dealing with dynamic sites.
+* Screenshots image comparison via [Mean Squared Error and Structural Similarity Measure algorithms] https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/. 
+
