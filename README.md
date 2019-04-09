@@ -340,7 +340,7 @@ A "lock file" is created on every run to prevent overlapping executions (e.g., w
 SHELL=/bin/bash
 USER=my_username
 PATH=/home/my_username/bin:/home/my_username/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
-PWD=/home/my_username/git/phishcracker
+PWD=/home/my_username/git/sitestalker
 HOME=/home/my_username
 LOGNAME=my_username
 
