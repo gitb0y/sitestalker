@@ -196,7 +196,7 @@ On initial run (see below), **sitestalker.py** will create a configuration file 
 ```
 $ python sitestalker.py 
 Configuration file written to stalker_config.yaml. Edit this file before running the script.
-See https://github.com/gitb0y/phishcracker/blob/master/sitestalker_README.md
+See https://github.com/gitb0y/sitestalker
 ```
 
 
