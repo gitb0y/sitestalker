@@ -4,6 +4,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import UnexpectedAlertPresentException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from email.mime.multipart import MIMEMultipart
@@ -21,6 +22,7 @@ from PIL import Image
 from lxml import html
 import subprocess
 import threading 
+import ipaddress
 import dominate
 import datetime
 import StringIO
@@ -29,6 +31,7 @@ import requests
 import httplib
 import smtplib
 import getpass
+import socket
 #import psutil
 import uuid
 import yaml
@@ -41,7 +44,7 @@ import re
 import io
 
 parser = argparse.ArgumentParser(description='A program that collects and stores statistics of one or more domains or websites (e.g., potentially brand-infringing parked domains) and monitors changes in these parameters. Screenshots are taken and email alerts are sent.',
-        epilog='EXAMPLE: "python sitestalker.py -i stalker_input.txt -c stalker_config.yaml -g group1 -v"')
+        epilog='EXAMPLE: "python sitestalker.py -i stalker_input.txt -c stalker_config.yaml -g group1 -v" See https://github.com/gitb0y/sitestalker for the complete documentation.')
 parser.add_argument('-i', '--infile', nargs='?', help='Input file containing a list of domains or URLs to monitor. ')
 parser.add_argument('-c', '--configfile', nargs='?', const='stalker_config.yaml', default='stalker_config.yaml',
                     help='sitestalker.py configuration file in yaml format. Initial run will create stalker_config.yaml.')
@@ -133,10 +136,16 @@ def get_screenshot(url, stalkerdb, change_status):
 
 # NORMAL SCREENSHOT (VIEWPORT)
 	print "Taking screenshots for " + url[0:40]
-	driver.get_screenshot_as_file(screenshot_path)
-	if not os.path.exists(screenshot_path):
-		print "HOLY COW NO SCREENSHOT", url
-		print db_hash
+	try:
+	    driver.get_screenshot_as_file(screenshot_path)
+	except UnexpectedAlertPresentException:
+	    alert = driver.switch_to_alert()
+	    alert.dismiss()
+	    driver.get_screenshot_as_file(screenshot_path)
+	    
+	#if not os.path.exists(screenshot_path):
+	#	print "HOLY COW NO SCREENSHOT", url
+	#	print db_hash
 	if args.verbose: print ">>> Cropping screenshot for " + url[0:40]
         crop_image(screenshot_name)	
 	if args.verbose: print ">>> Creating thumbnail for " + url[0:40]
@@ -193,7 +202,7 @@ def get_screenshot(url, stalkerdb, change_status):
         	driver.get_screenshot_as_file(screenshot_full_path) #SOME SITES DENY QUICK SUCCEEDING CONNECTIONS USE VIEW PORT SCREENSHOT INSTEAD
         	db_hash['screenshots']['full'] = screenshot_full_name
 	except Exception, e:
-	        if args.verbose: print "SETTING FULL SCREENSHOT HERE"
+	        if args.verbose: print "FULL SCREENSHOT FAILED. USING VIEWPORT INSTEAD."
         	db_hash['screenshots']['full'] = screenshot_name
 # CLOSE PHANTOMJS BROWSER
 	driver.quit()
@@ -239,12 +248,12 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 	    with div(_class='grid'):
 	        for url in stalkerdb.keys():
 		    if args.verbose: print ">>> CREATING HTML ENTRY FOR " + url[0:40]
-		    print "TESTING URL " + url + " IF ACTIVE"
-		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': 
-			print "URL " + url + " NOT ACTIVE, SKIPPING"
-			continue
-		    else:
-			print "URL " + url + " ACTIVE, MAKING HTML"
+		    #print "TESTING URL " + url + " IF ACTIVE"
+		    if json.loads(stalkerdb[url])['host_status'] != 'ACTIVE': continue
+		    #	print "URL " + url + " NOT ACTIVE, SKIPPING"
+		    #	continue
+		    #else:
+		    #	print "URL " + url + " ACTIVE, MAKING HTML"
     		    try:
 		        path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['crop']
 		        full_path = os.path.basename(config[group]['screenshot_dir']) + "/" + json.loads(stalkerdb[url])['screenshots']['full']
@@ -283,6 +292,7 @@ def create_html(stalkerdb): #https://stackoverflow.com/questions/2301163/creatin
 					count+=1
 					td(a("   " + str(count) + ". " + db_hash['effective_url'][0:30], href=db_hash['effective_url']), align="left", colspan="2")
 	with open(os.path.join(config[group]['html_dir'], 'index.html'), 'w') as f:
+	    if args.verbose: print ">>> WRITING HTML GALLERY"
     	    f.write(doc.render())
 
 def crop_image(screenshot_name): #https://stackoverflow.com/questions/1197172/how-can-i-take-a-screenshot-image-of-a-website-using-python
@@ -335,9 +345,13 @@ class get_url(threading.Thread):
 
 
 	try:	
-	   print "Browsing " + self.url[0:40] + "..."
-	   res = requests.get(self.url, timeout=10)
-	   current_data['host_status'] = 'ACTIVE'
+	   if ipaddress.ip_address(unicode(socket.gethostbyname(hostname))).is_private == True:
+		if args.verbose: print ">>> Hostname maps to loopback address. Skipping..."
+		current_data['host_status'] = 'PRIVATE IP ASSIGNED'
+	   else:
+	       print "Browsing " + self.url[0:40] + "..."
+	       res = requests.get(self.url, timeout=10)
+	       current_data['host_status'] = 'ACTIVE'
 	except requests.exceptions.Timeout:
         	current_data['host_status'] = 'CONNECTION TIMED OUT'
 	except requests.exceptions.ConnectionError:
@@ -364,16 +378,19 @@ class get_url(threading.Thread):
 	     	    current_data['headers'][k] = [v]
 	# SAVE ELEMENTS 
 		#if args.verbose: print ">>> Extracting XPATH elements for " + self.url[0:40]
-	        tree = html.fromstring(res.content)
-	        trs = tree.xpath('//*')
-	        elements_with_id = [tr for tr in trs if tr.attrib.get('id') != None]
-		for element in elements_with_id:
-		    try:
-	                elementid = str(element.attrib.get('id'))
-		    except:
-			continue
-		    #current_data['elements'].append(str(element.attrib.get('id')))
-		    current_data['elements'].append(elementid)
+		try:
+	            tree = html.fromstring(res.content)
+	            trs = tree.xpath('//*')
+	            elements_with_id = [tr for tr in trs if tr.attrib.get('id') != None]
+		    for element in elements_with_id:
+		        try:
+	                    elementid = str(element.attrib.get('id'))
+		        except:
+			    continue
+		        #current_data['elements'].append(str(element.attrib.get('id')))
+		        current_data['elements'].append(elementid)
+		except:
+			if args.verbose: print ">>> No XPATH elements found for " + self.url[0:40]
         # SAVE REDIRECT URLS
 		for redirect in res.history:
 		    current_data['redirects'].append(redirect.url)
@@ -424,6 +441,7 @@ class get_url(threading.Thread):
 	        self.stalkerdb[self.url] = json.dumps(stalkerdb_hash)
             else:		
 		## IF NOTHING HAS CHANGED, SET change_status TO unmodified
+		if args.verbose: print ">>> No change seen on " + self.url[0:40] + "..."
 		stalkerdb_hash['change_status'] = 'unmodified'
 		envlock = dbenv.lock_detect(db.DB_LOCK_DEFAULT)
 		while envlock != 0:
@@ -779,6 +797,7 @@ if __name__ == '__main__':
 							'elements'
 							], 
 					'min_stats': 3,
+					'poll_history': 5,
 					'html_dir': '/var/www/html/sitestalker',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
@@ -805,6 +824,7 @@ if __name__ == '__main__':
 							'elements'
 							], 
 					'min_stats': 4,
+					'poll_history': 5,
 					'html_dir': '/var/www/html/sitestalker/group1',
 					'email_alerts': {
 						'subject' : '[sitestalker] Updates Seen on Monitored Sites',
@@ -904,6 +924,7 @@ if __name__ == '__main__':
 		  for url in urls:
 		      if url in unique_urls:
 			    if args.verbose: print "  >>> " + url[0:40] + " Already seen. Duplicate entries?"
+			    continue
 		      else:
 			    unique_urls[url] = None
 		      url_count += 1
@@ -1017,10 +1038,11 @@ if __name__ == '__main__':
 	    for url in stalkerdb.keys():
 		host_status = str(json.loads(stalkerdb[url])['host_status'])
 		change_status = str(json.loads(stalkerdb[url])['change_status'])
+		
 		if host_status == 'ACTIVE':
 		    active_count += 1
 	            print "\t" + url[0:40] 
-   
+   		    #print str(json.loads(stalkerdb[url]))
 	    if args.verbose: print "\nInactive Hosts:"
 	    for url in stalkerdb.keys():
 		host_status = str(json.loads(stalkerdb[url])['host_status'])
